@@ -1,0 +1,8 @@
+include *.rst
+include LICENSE
+recursive-include importer *.html
+recursive-include importer *.txt
+recursive-include importer *.po
+global-exclude __pycache__
+global-exclude *.py[co]
+
