@@ -1,68 +1,5 @@
 from lxml import etree
 
-# /dsp/processen/*/proces
-ZAAKTYPE = {
-    # "url": "http://example.com",  # Generated
-    'identificatie': '@id',
-
-    # velden
-    'omschrijving': 'kernomschrijving',
-    'omschrijvingGeneriek': 'model-kernomschrijving',
-    "vertrouwelijkheidaanduiding": "vertrouwelijkheid",
-    "doel": "naam",
-    "aanleiding": "aanleiding",
-    "toelichting": "toelichting-proces",
-    "indicatieInternOfExtern": "zaaktype-categorie",
-    "handelingInitiator": "zaaktype-naam/structuur/handeling-initiator",
-    "onderwerp": "zaaktype-naam/structuur/onderwerp",
-    "handelingBehandelaar": "zaaktype-naam/structuur/handeling-behandelaar",
-    "doorlooptijd": "afdoeningstermijn",  # See afdoeningstermijn-eenheid for unit
-    # "servicenorm": "string",
-    "opschortingEnAanhoudingMogelijk": "aanhouden-mogelijk",
-    "verlengingMogelijk": "beroep-mogelijk",
-    # "verlengingstermijn": "string",
-    "trefwoorden": "lokale-trefwoorden",  # ???
-    "publicatieIndicatie": "publicatie-indicatie",
-    "publicatietekst": "publicatietekst",
-    "verantwoordingsrelatie": "verantwoordingsrelatie",  # ???
-    # "productenOfDiensten": [
-    # "http://example.com"
-    # ],
-    "selectielijstProcestype": "",  # Infer URL from first resultaattype.selectielijstklasse number (like 8.2). The processtype is then 8.
-    # "referentieproces": {
-    # "naam": "string",
-    # "link": "http://example.com"
-    # },
-    # "catalogus": "http://example.com",  # Provided
-    # "statustypen": [
-    # "http://example.com"
-    # ],
-    # "resultaattypen": [
-    # "http://example.com"
-    # ],
-    # "eigenschappen": [
-    # "http://example.com"
-    # ],
-    # "informatieobjecttypen": [
-    # "http://example.com"
-    # ],
-    # "roltypen": [
-    # "http://example.com"
-    # ],
-    # "besluittypen": [
-    # "http://example.com"
-    # ],
-    # "deelzaaktypen": [
-    # "http://example.com"
-    # ],
-    # "gerelateerdeZaaktypen": [
-    # {}
-    # ],
-    "beginGeldigheid": "actueel-van",
-    "eindeGeldigheid": "actueel-tot",
-    "versiedatum": "actueel-van",
-    # "concept": true  # Use default
-}
 
 # /dsp/processen/*/proces/roltypen/*
 # We could also use /dsp/rolsoorten/*/rolsoort, it doesn't matter much for our
@@ -78,7 +15,7 @@ ROLTYPE = {
 }
 
 # /dsp/processen/*/proces/documenttypen/*
-# Typically, the IO-attributes should come from @soort-id ref to 
+# Typically, the IO-attributes should come from @soort-id ref to
 # "documentsoort" but it doesn't map well. Better use "omschrijving" as unique
 # identifier to see if it already exists.
 INFORMATIEOBJECTTYPE = {
@@ -125,7 +62,7 @@ STATUSTYPE = {
 RESULTAATTYPE = {
     # "url": "http://example.com",  # Generated
     # "zaaktype": "http://example.com",  # Parent
-    
+
     # velden
     "omschrijving": "naam",
     "resultaattypeomschrijving": "naam-model",  # Infer URL from this field I guess?
@@ -149,12 +86,82 @@ RESULTAATTYPE = {
 BESLUITTYPE = {}  # None so far
 
 
+def find(el: etree.ElementBase, path: str) -> str:
+    """find child element and return its text"""
+    return el.find(path).text
 
-def init():
-    with open('example.xml', 'r') as f:
+
+def get_duration(value: str, units: str) -> str:
+    # fixme in example there is only Dag unit. The format of other units is unknown
+    iso_units = ""
+    if units.lower() == "dag":
+        iso_units = "D"
+    return f'P{value}{iso_units}'
+
+
+def get_boolean(value: str) -> bool:
+    return True if value.lower() == 'ja' else False
+
+
+def get_array(value: str) -> list:
+    if not value:
+        return []
+
+    # fixme in the example all list elements are empty. The format of the separator is unknown
+    return value.split(',')
+
+
+def parse_xml(file: str) -> list:
+    with open(file, 'r') as f:
         tree = etree.parse(f)
 
-    res = tree.xpath('/dsp/processen')
+    zaaktypen = []
+    processen = tree.xpath('/dsp/processen')[0]
+    for process in processen:
+        fields = process.find("velden")
+        zaaktype = {
+            "identificatie": process.get("id"),
+            'omschrijving': find(fields, 'kernomschrijving'),
+            'omschrijvingGeneriek': find(fields, 'model-kernomschrijving'),
+            # fixme choice field
+            "vertrouwelijkheidaanduiding": find(fields, 'vertrouwelijkheid'),
+            "doel": find(fields, 'naam'),
+            "aanleiding": find(fields, 'aanleiding'),
+            "toelichting": find(fields, 'toelichting-proces'),
+            # fixme choice field
+            "indicatieInternOfExtern": find(fields, 'zaaktype-categorie'),
+            "handelingInitiator": find(fields,"zaaktype-naam/structuur/handeling-initiator"),
+            "onderwerp": find(fields, "zaaktype-naam/structuur/onderwerp"),
+            "handelingBehandelaar": find(fields, "zaaktype-naam/structuur/handeling-behandelaar"),
+            "doorlooptijd": get_duration(find(fields, "afdoeningstermijn"), find(fields, "afdoeningstermijn-eenheid")),
+            "opschortingEnAanhoudingMogelijk": get_boolean(find(fields, "aanhouden-mogelijk")),
+            "verlengingMogelijk":  get_boolean(find(fields, "beroep-mogelijk")),
+            "trefwoorden": get_array(find(fields, "lokale-trefwoorden")),  # always empty?
+            "publicatieIndicatie": get_boolean(find(fields, "publicatie-indicatie")),
+            "publicatietekst": find(fields, "publicatietekst"),
+            "verantwoordingsrelatie": get_array(find(fields, "verantwoordingsrelatie")),  # always empty?
+            # todo !!!
+            "selectielijstProcestype": "", # Infer URL from first resultaattype.selectielijstklasse number (like 8.2). The processtype is then 8.
+            # fixme !!! no mapping for required field
+            "referentieproces": {
+                "naam": "string",
+            },
+            # todo "catalogus": "",
+            "besluittypen": [],
+            "beginGeldigheid": "actueel-van",
+            "eindeGeldigheid": "actueel-tot",
+            "versiedatum": "actueel-van",
 
-if __name__ == "__main__":
-    init()
+            # todo no mapping for required field
+            "productenOfDiensten": [],
+            "gerelateerdeZaaktypen": [],
+
+            # todo no mapping for non-required fields
+            # "verlengingstermijn": None,
+            # "deelzaaktypen": [],
+            # "servicenorm": None,
+        }
+
+        zaaktypen.append(zaaktype)
+
+    return zaaktypen
