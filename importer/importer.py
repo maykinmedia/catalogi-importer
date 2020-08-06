@@ -223,7 +223,7 @@ def construct_resultaattype_data(resultaattype: etree.ElementBase) -> dict:
         "brondatumArchiefprocedure": {
             "afleidingswijze": get_choice_field(
                 find(fields, "brondatum-archiefprocedure"),
-                BrondatumArchiefprocedureAfleidingswijze,
+                BrondatumArchiefprocedureAfleidingswijze.values,
                 DEFAULT_AFLEIDINGSWIJZE,
             )
             # todo no mapping for non-required fields
