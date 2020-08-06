@@ -8,11 +8,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("file")
+        parser.add_argument("catalogus")
 
     def handle(self, **options):
         file = options["file"]
+        catalogus = options["catalogus"]
 
         # parse to python primitives
-        zaaktypen = import_from_xml(file)
-
-        self.stdout.write(f"zaaktypen={zaaktypen}")
+        import_from_xml(file, catalogus)

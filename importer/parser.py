@@ -1,4 +1,6 @@
+import datetime
 import re
+from typing import Optional
 
 from lxml import etree
 from zgw_consumers.api_models.constants import (
@@ -52,7 +54,7 @@ BESLUITTYPE = {}  # None so far
 
 def find(el: etree.ElementBase, path: str) -> str:
     """find child element and return its text"""
-    return el.find(path).text
+    return el.find(path).text or ""
 
 
 def get_duration(value: str, units: str) -> str:
@@ -73,6 +75,13 @@ def get_array(value: str) -> list:
 
     # fixme in the example all list elements are empty. The format of the separator is unknown
     return value.split(",")
+
+
+def get_date(value: str) -> Optional[str]:
+    if not value:
+        return None
+
+    return datetime.datetime.fromisoformat(value).date().isoformat()
 
 
 def get_choice_field(value: str, choices: dict, default="") -> str:
@@ -157,7 +166,9 @@ def construct_zaaktype_data(process: etree.ElementBase) -> dict:
         "opschortingEnAanhoudingMogelijk": get_boolean(
             find(fields, "aanhouden-mogelijk")
         ),
-        "verlengingMogelijk": get_boolean(find(fields, "beroep-mogelijk")),
+        # fixme cam't be set without verlengingstermijn field
+        # "verlengingMogelijk": get_boolean(find(fields, "beroep-mogelijk")),
+        "verlengingMogelijk": False,
         "trefwoorden": get_array(find(fields, "lokale-trefwoorden")),  # always empty?
         "publicatieIndicatie": get_boolean(find(fields, "publicatie-indicatie")),
         "publicatietekst": find(fields, "publicatietekst"),
@@ -165,11 +176,11 @@ def construct_zaaktype_data(process: etree.ElementBase) -> dict:
             find(fields, "verantwoordingsrelatie")
         ),  # always empty?
         "selectielijstProcestype": get_procestype(process),
-        "referentieproces": {"naam": find(fields, "ztc-procestype"),},
+        "referentieproces": {"naam": find(fields, "ztc-procestype")},
         # todo "catalogus": "",
-        "beginGeldigheid": "actueel-van",
-        "eindeGeldigheid": "actueel-tot",
-        "versiedatum": "actueel-van",
+        "beginGeldigheid": get_date(find(fields, "actueel-van")),
+        "eindeGeldigheid": get_date(find(fields, "actueel-tot")),
+        "versiedatum": get_date(find(fields, "actueel-van")),
         # todo no mapping for required field
         "productenOfDiensten": [],
         "gerelateerdeZaaktypen": [],

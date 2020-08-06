@@ -10,7 +10,7 @@ def get_client() -> ZGWClient:
     from .models import SelectielijstConfig
 
     config = SelectielijstConfig.get_solo()
-    assert config.service, "A service must be configured first"
+    assert config.service, "A Selectielijst service must be configured first"
     return config.service.build_client()
 
 
