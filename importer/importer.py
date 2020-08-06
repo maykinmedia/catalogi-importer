@@ -1,5 +1,11 @@
-from lxml import etree
+import re
 
+from lxml import etree
+from zgw_consumers.api_models.constants import VertrouwelijkheidsAanduidingen
+
+from .selectielijst import get_procestypen
+
+DEFAULT_VERTROUWELIJKHEID = VertrouwelijkheidsAanduidingen.openbaar
 
 # /dsp/processen/*/proces/roltypen/*
 # We could also use /dsp/rolsoorten/*/rolsoort, it doesn't matter much for our
@@ -7,11 +13,10 @@ from lxml import etree
 
 ROLTYPE = {
     # "url": "http://example.com",  # Generated
-
     # velden
     # "zaaktype": "http://example.com",  # Parent
     "omschrijving": "naam",
-    "omschrijvingGeneriek": "naam-model"
+    "omschrijvingGeneriek": "naam-model",
 }
 
 # /dsp/processen/*/proces/documenttypen/*
@@ -21,7 +26,6 @@ ROLTYPE = {
 INFORMATIEOBJECTTYPE = {
     # "url": "http://example.com",  # Generated
     # "catalogus": "http://example.com",  # Provided
-
     # velden
     "omschrijving": "naam",
     "vertrouwelijkheidaanduiding": "vertrouwelijkheid",
@@ -37,7 +41,6 @@ ZAAKTYPE_INFORMATIEOBJECTTYPE = {
     # "zaaktype": "http://example.com",  # Parent
     # "informatieobjecttype": "http://example.com",  # See above
     "volgnummer": "@volgnummer",
-
     # velden
     "richting": "type",
     # "statustype": "http://example.com"
@@ -48,7 +51,6 @@ ZAAKTYPE_INFORMATIEOBJECTTYPE = {
 STATUSTYPE = {
     # "url": "http://example.com",
     "volgnummer": "@volgnummer",
-
     # velden
     "omschrijving": "naam",
     "omschrijvingGeneriek": "naam-model",
@@ -62,7 +64,6 @@ STATUSTYPE = {
 RESULTAATTYPE = {
     # "url": "http://example.com",  # Generated
     # "zaaktype": "http://example.com",  # Parent
-
     # velden
     "omschrijving": "naam",
     "resultaattypeomschrijving": "naam-model",  # Infer URL from this field I guess?
@@ -79,7 +80,7 @@ RESULTAATTYPE = {
         # "objecttype": "adres",
         # "registratie": "string",
         # "procestermijn": "string"
-    }
+    },
 }
 
 # /dsp/processen/*/proces/besluittypen/*
@@ -96,11 +97,11 @@ def get_duration(value: str, units: str) -> str:
     iso_units = ""
     if units.lower() == "dag":
         iso_units = "D"
-    return f'P{value}{iso_units}'
+    return f"P{value}{iso_units}"
 
 
 def get_boolean(value: str) -> bool:
-    return True if value.lower() == 'ja' else False
+    return True if value.lower() == "ja" else False
 
 
 def get_array(value: str) -> list:
@@ -108,54 +109,86 @@ def get_array(value: str) -> list:
         return []
 
     # fixme in the example all list elements are empty. The format of the separator is unknown
-    return value.split(',')
+    return value.split(",")
+
+
+def get_procestype(process: etree.ElementBase) -> str:
+    # use vernietigingsgrondslag from the first resultaattype of this zaaktype
+    xpath = "resultaattypen/resultaattype/velden/vernietigingsgrondslag/list/fields/field[@naam='NAAM']"
+    resultaat_name = find(process, xpath)
+    if not resultaat_name:
+        return ""
+
+    procestype_number = int(re.match("Resultaat (\d+)\.\d+", resultaat_name).group(1))
+    procestype = [p for p in get_procestypen() if p["nummer"] == procestype_number][0]
+
+    return procestype["url"]
 
 
 def parse_xml(file: str) -> list:
-    with open(file, 'r') as f:
+    with open(file, "r") as f:
         tree = etree.parse(f)
 
     zaaktypen = []
-    processen = tree.xpath('/dsp/processen')[0]
+    processen = tree.xpath("/dsp/processen")[0]
     for process in processen:
         fields = process.find("velden")
+
+        # fixme - remove default value
+        vertrouwelijkheidaanduiding = (
+            find(fields, "vertrouwelijkheid")
+            if find(fields, "vertrouwelijkheid")
+            in VertrouwelijkheidsAanduidingen.choices
+            else DEFAULT_VERTROUWELIJKHEID,
+        )
+        indicatie_intern_of_extern = (
+            "extern"
+            if "extern" in find(fields, "zaaktype-categorie").lower()
+            else "intern"
+        )
         zaaktype = {
             "identificatie": process.get("id"),
-            'omschrijving': find(fields, 'kernomschrijving'),
-            'omschrijvingGeneriek': find(fields, 'model-kernomschrijving'),
-            # fixme choice field
-            "vertrouwelijkheidaanduiding": find(fields, 'vertrouwelijkheid'),
-            "doel": find(fields, 'naam'),
-            "aanleiding": find(fields, 'aanleiding'),
-            "toelichting": find(fields, 'toelichting-proces'),
-            # fixme choice field
-            "indicatieInternOfExtern": find(fields, 'zaaktype-categorie'),
-            "handelingInitiator": find(fields,"zaaktype-naam/structuur/handeling-initiator"),
+            "omschrijving": find(fields, "kernomschrijving"),
+            "omschrijvingGeneriek": find(fields, "model-kernomschrijving"),
+            "vertrouwelijkheidaanduiding": vertrouwelijkheidaanduiding,
+            "doel": find(fields, "naam"),
+            "aanleiding": find(fields, "aanleiding"),
+            "toelichting": find(fields, "toelichting-proces"),
+            "indicatieInternOfExtern": indicatie_intern_of_extern,
+            "handelingInitiator": find(
+                fields, "zaaktype-naam/structuur/handeling-initiator"
+            ),
             "onderwerp": find(fields, "zaaktype-naam/structuur/onderwerp"),
-            "handelingBehandelaar": find(fields, "zaaktype-naam/structuur/handeling-behandelaar"),
-            "doorlooptijd": get_duration(find(fields, "afdoeningstermijn"), find(fields, "afdoeningstermijn-eenheid")),
-            "opschortingEnAanhoudingMogelijk": get_boolean(find(fields, "aanhouden-mogelijk")),
-            "verlengingMogelijk":  get_boolean(find(fields, "beroep-mogelijk")),
-            "trefwoorden": get_array(find(fields, "lokale-trefwoorden")),  # always empty?
+            "handelingBehandelaar": find(
+                fields, "zaaktype-naam/structuur/handeling-behandelaar"
+            ),
+            "doorlooptijd": get_duration(
+                find(fields, "afdoeningstermijn"),
+                find(fields, "afdoeningstermijn-eenheid"),
+            ),
+            "opschortingEnAanhoudingMogelijk": get_boolean(
+                find(fields, "aanhouden-mogelijk")
+            ),
+            "verlengingMogelijk": get_boolean(find(fields, "beroep-mogelijk")),
+            "trefwoorden": get_array(
+                find(fields, "lokale-trefwoorden")
+            ),  # always empty?
             "publicatieIndicatie": get_boolean(find(fields, "publicatie-indicatie")),
             "publicatietekst": find(fields, "publicatietekst"),
-            "verantwoordingsrelatie": get_array(find(fields, "verantwoordingsrelatie")),  # always empty?
-            # todo !!!
-            "selectielijstProcestype": "", # Infer URL from first resultaattype.selectielijstklasse number (like 8.2). The processtype is then 8.
+            "verantwoordingsrelatie": get_array(
+                find(fields, "verantwoordingsrelatie")
+            ),  # always empty?
+            "selectielijstProcestype": get_procestype(process),
             # fixme !!! no mapping for required field
-            "referentieproces": {
-                "naam": "string",
-            },
+            "referentieproces": {"naam": "string",},
             # todo "catalogus": "",
             "besluittypen": [],
             "beginGeldigheid": "actueel-van",
             "eindeGeldigheid": "actueel-tot",
             "versiedatum": "actueel-van",
-
             # todo no mapping for required field
             "productenOfDiensten": [],
             "gerelateerdeZaaktypen": [],
-
             # todo no mapping for non-required fields
             # "verlengingstermijn": None,
             # "deelzaaktypen": [],

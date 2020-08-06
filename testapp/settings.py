@@ -4,6 +4,8 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 SECRET_KEY = "so-secret-i-cant-believe-you-are-looking-at-this"
 
+ALLOWED_HOSTS = ["*"]
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -16,6 +18,8 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.sessions",
     "django.contrib.admin",
+    "solo",
+    "zgw_consumers",
     "importer",
     "testapp",
 ]
