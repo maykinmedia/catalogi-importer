@@ -1,4 +1,5 @@
 import datetime
+import logging
 import re
 from typing import Optional
 
@@ -19,6 +20,10 @@ DEFAULT_VERTROUWELIJKHEID = VertrouwelijkheidsAanduidingen.openbaar
 DEFAULT_ROL_OMSCHRIVING = RolOmschrijving.adviseur
 DEFAULT_ARCHIEFNOMINATIE = Archiefnominatie.vernietigen
 DEFAULT_AFLEIDINGSWIJZE = BrondatumArchiefprocedureAfleidingswijze.afgehandeld
+
+
+logger = logging.getLogger(__name__)
+
 
 # /dsp/processen/*/proces/documenttypen/*
 # Typically, the IO-attributes should come from @soort-id ref to
@@ -52,16 +57,25 @@ ZAAKTYPE_INFORMATIEOBJECTTYPE = {
 BESLUITTYPE = {}  # None so far
 
 
+class ParserException(Exception):
+    pass
+
+
 def find(el: etree.ElementBase, path: str) -> str:
     """find child element and return its text"""
     return el.find(path).text or ""
 
 
 def get_duration(value: str, units: str) -> str:
-    # fixme in example there is only Dag unit. The format of other units is unknown
     iso_units = ""
     if units.lower() == "dag":
         iso_units = "D"
+    elif units.lower() == "week":
+        iso_units = "W"
+    elif units.lower() == "maand":
+        iso_units = "M"
+    elif units.lower() == "jaar":
+        iso_units = "Y"
     return f"P{value}{iso_units}"
 
 
@@ -111,8 +125,11 @@ def get_resultaattype_omschrijving(resultaattype: etree.ElementBase) -> str:
     filtered_omschrijvingen = [
         r for r in resultaattype_omschrijvingen if r["omschrijving"] == omschriving
     ]
+
     if not filtered_omschrijvingen:
-        return ""
+        raise ParserException(
+            f"selectielijst API doesn't have matching resultaattypeomschrijving = {omschriving}"
+        )
 
     return filtered_omschrijvingen[0]["url"]
 
@@ -124,13 +141,16 @@ def get_resultaat(resultaattype: etree.ElementBase) -> str:
         return ""
 
     volledig_nummer = re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name).group(1)
-    resultaaten = [
-        r for r in get_resultaaten() if r["volledigNummer"] == volledig_nummer
+    resultaten = get_resultaaten()
+    filtered_resultaaten = [
+        r for r in resultaten if r["volledigNummer"] == volledig_nummer
     ]
-    if not resultaaten:
-        return ""
+    if not filtered_resultaaten:
+        raise ParserException(
+            f"selectielijst API doesn't have matching resultaat with volledig_nummer = {volledig_nummer}"
+        )
 
-    return resultaaten[0]["url"]
+    return filtered_resultaaten[0]["url"]
 
 
 def construct_zaaktype_data(process: etree.ElementBase) -> dict:
@@ -218,33 +238,40 @@ def construct_statustype_data(statustype: etree.ElementBase) -> dict:
 
 def construct_resultaattype_data(resultaattype: etree.ElementBase) -> dict:
     fields = resultaattype.find("velden")
-    return {
-        "omschrijving": find(fields, "naam"),
-        "resultaattypeomschrijving": get_resultaattype_omschrijving(resultaattype),
-        "selectielijstklasse": get_resultaat(resultaattype),
-        "toelichting": find(fields, "toelichting"),
-        "archiefnominatie": get_choice_field(
-            find(fields, "waardering"),
-            Archiefnominatie.values,
-            DEFAULT_ARCHIEFNOMINATIE,
-        ),
-        "archiefactietermijn": get_duration(
-            find(fields, "bewaartermijn"), find(fields, "bewaartermijn-eenheid")
-        ),
-        "brondatumArchiefprocedure": {
-            "afleidingswijze": get_choice_field(
-                find(fields, "brondatum-archiefprocedure"),
-                BrondatumArchiefprocedureAfleidingswijze.values,
-                DEFAULT_AFLEIDINGSWIJZE,
-            )
-            # todo no mapping for non-required fields
-            # "datumkenmerk": "string",
-            # "einddatumBekend": true,
-            # "objecttype": "adres",
-            # "registratie": "string",
-            # "procestermijn": "string"
-        },
-    }
+    resultaattype_data = {}
+    try:
+        resultaattype_data = {
+            "omschrijving": find(fields, "naam"),
+            "resultaattypeomschrijving": get_resultaattype_omschrijving(resultaattype),
+            "selectielijstklasse": get_resultaat(resultaattype),
+            "toelichting": find(fields, "toelichting"),
+            "archiefnominatie": get_choice_field(
+                find(fields, "waardering"),
+                Archiefnominatie.values,
+                DEFAULT_ARCHIEFNOMINATIE,
+            ),
+            "archiefactietermijn": get_duration(
+                find(fields, "bewaartermijn"), find(fields, "bewaartermijn-eenheid")
+            ),
+            "brondatumArchiefprocedure": {
+                "afleidingswijze": get_choice_field(
+                    find(fields, "brondatum-archiefprocedure"),
+                    BrondatumArchiefprocedureAfleidingswijze.values,
+                    DEFAULT_AFLEIDINGSWIJZE,
+                ),
+                # fixme fixed values are set to prevent 500 error
+                "datumkenmerk": "",
+                "einddatumBekend": False,
+                "objecttype": "",
+                "registratie": "",
+                "procestermijn": None,
+            },
+        }
+    #  fixme what to do with resultaattypen which don't match with selectielijst data?
+    except ParserException as exc:
+        logger.warning(f"the resultaattype can't be parsed due to: {exc}")
+        print(f"the resultaattype can't be parsed due to: {exc}")
+    return resultaattype_data
 
 
 def parse_xml(file: str) -> list:
@@ -266,6 +293,7 @@ def parse_xml(file: str) -> list:
             construct_resultaattype_data(resultaattype)
             for resultaattype in process.find("resultaattypen")
         ]
+        resultaattypen_data = [r for r in resultaattypen_data if r]
 
         zaaktype_data["_children"] = {
             "roltypen": roltypen_data,
