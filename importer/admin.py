@@ -6,5 +6,5 @@ from .models import SelectielijstConfig
 
 
 @admin.register(SelectielijstConfig)
-class SubscriptionAdmin(SingletonModelAdmin):
+class SelectielijstConfigAdmin(SingletonModelAdmin):
     pass

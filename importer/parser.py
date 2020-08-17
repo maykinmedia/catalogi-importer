@@ -197,7 +197,8 @@ def construct_zaaktype_data(process: etree.ElementBase) -> dict:
         ),  # always empty?
         "selectielijstProcestype": get_procestype(process),
         "referentieproces": {"naam": find(fields, "ztc-procestype")},
-        # todo "catalogus": "",
+        # Set during `load_data` 
+        # "catalogus": "",
         "beginGeldigheid": get_date(find(fields, "actueel-van")),
         "eindeGeldigheid": get_date(find(fields, "actueel-tot")),
         "versiedatum": get_date(find(fields, "actueel-van")),
