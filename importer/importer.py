@@ -6,10 +6,10 @@ from .parser import parse_xml
 logger = logging.getLogger(__name__)
 
 
-def import_from_xml(file: str, catalogus: str):
+def import_from_xml(file: str, catalogus: str, year: int):
     logger.info("start parsing")
 
-    zaaktypen = parse_xml(file)
+    zaaktypen = parse_xml(file, year)
 
     logger.info("finish parsing")
     logger.info("start loading")

@@ -15,9 +15,10 @@ def get_client() -> ZGWClient:
 
 
 @cache("selectielijst:procestypen", timeout=60 * 60 * 24)
-def get_procestypen() -> List[dict]:
+def get_procestypen(processtype_year: int = None) -> List[dict]:
     client = get_client()
-    return client.list("procestype")
+    query_params = {"jaar": processtype_year} if processtype_year else None
+    return client.list("procestype", query_params=query_params)
 
 
 @cache("selectielijst:resultaattypeomschrijvingen", timeout=60 * 60 * 24)
