@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
 from lxml import etree
 from zgw_consumers.api_models.constants import (
@@ -9,7 +9,11 @@ from zgw_consumers.api_models.constants import (
     VertrouwelijkheidsAanduidingen,
 )
 
-from .constants import Archiefnominatie, BrondatumArchiefprocedureAfleidingswijze
+from .constants import (
+    Archiefnominatie,
+    BrondatumArchiefprocedureAfleidingswijze,
+    RichtingChoices,
+)
 from .selectielijst import (
     get_procestypen,
     get_resultaaten,
@@ -23,38 +27,6 @@ DEFAULT_AFLEIDINGSWIJZE = BrondatumArchiefprocedureAfleidingswijze.afgehandeld
 
 
 logger = logging.getLogger(__name__)
-
-
-# /dsp/processen/*/proces/documenttypen/*
-# Typically, the IO-attributes should come from @soort-id ref to
-# "documentsoort" but it doesn't map well. Better use "omschrijving" as unique
-# identifier to see if it already exists.
-INFORMATIEOBJECTTYPE = {
-    # "url": "http://example.com",  # Generated
-    # "catalogus": "http://example.com",  # Provided
-    # velden
-    "omschrijving": "naam",
-    "vertrouwelijkheidaanduiding": "vertrouwelijkheid",
-    "beginGeldigheid": "actueel-van",
-    "eindeGeldigheid": "actueel-tot",
-    # "concept": true  # Use default
-}
-
-# /dsp/processen/*/proces/documenttypen/*
-# Relation information is in the same definition as above
-ZAAKTYPE_INFORMATIEOBJECTTYPE = {
-    # "url": "http://example.com",  # Generated
-    # "zaaktype": "http://example.com",  # Parent
-    # "informatieobjecttype": "http://example.com",  # See above
-    "volgnummer": "@volgnummer",
-    # velden
-    "richting": "type",
-    # "statustype": "http://example.com"
-}
-
-
-# /dsp/processen/*/proces/besluittypen/*
-BESLUITTYPE = {}  # None so far
 
 
 class ParserException(Exception):
@@ -281,11 +253,38 @@ def construct_resultaattype_data(
     return resultaattype_data
 
 
-def parse_xml(file: str, processtype_year: int) -> list:
+def construct_iotype_data(document: etree.ElementBase) -> dict:
+    fields = document.find("velden")
+    return {
+        "omschrijving": find(fields, "naam"),
+        # fixme this field is always empty in the example xml
+        "vertrouwelijkheidaanduiding": get_choice_field(
+            find(fields, "vertrouwelijkheid"),
+            VertrouwelijkheidsAanduidingen.values,
+            DEFAULT_VERTROUWELIJKHEID,
+        ),
+        "beginGeldigheid": get_date(find(fields, "actueel-van")),
+        "eindeGeldigheid": get_date(find(fields, "actueel-tot")),
+    }
+
+
+def construct_ziotype_data(document: etree.ElementBase) -> dict:
+    fields = document.find("velden")
+    return {
+        "informatieobjecttype_omschrijving": find(fields, "naam"),
+        "volgnummer": document.get("volgnummer"),
+        "richting": get_choice_field(find(fields, "type"), RichtingChoices.values),
+        # todo no mapping for non-required fields
+        # "statustype": "http://example.com"
+    }
+
+
+def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
     with open(file, "r") as f:
         tree = etree.parse(f)
 
     zaaktypen_data = []
+    iotypen_dict = {}
     for process in tree.xpath("/dsp/processen")[0]:
         zaaktype_data = construct_zaaktype_data(process, processtype_year)
 
@@ -304,12 +303,32 @@ def parse_xml(file: str, processtype_year: int) -> list:
         ]
         resultaattypen_data = [r for r in resultaattypen_data if r]
 
+        iotypen_data = [
+            construct_iotype_data(document)
+            for document in process.find("documenttypen")
+        ]
+        ziotypen_data = [
+            construct_ziotype_data(document)
+            for document in process.find("documenttypen")
+        ]
+
         zaaktype_data["_children"] = {
             "roltypen": roltypen_data,
             "statustypen": statustype_data,
             "resultaattypen": resultaattypen_data,
+            "zaakinformatieobjecttypen": ziotypen_data,
         }
 
         zaaktypen_data.append(zaaktype_data)
 
-    return zaaktypen_data
+        for iotype_data in iotypen_data:
+            if (
+                iotype_data["omschrijving"] in iotypen_dict
+                and iotype_data != iotypen_dict[iotype_data["omschrijving"]]
+            ):
+                raise ParserException(
+                    f"there are different informatieobjectypen with the same omschriving: {iotype_data['omschrijving']}"
+                )
+            iotypen_dict[iotype_data["omschrijving"]] = iotype_data
+
+    return zaaktypen_data, list(iotypen_dict.values())

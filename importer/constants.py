@@ -107,3 +107,9 @@ class BrondatumArchiefprocedureAfleidingswijze(DjangoChoices):
             "datum-attribuutsoort van het zaakobjecttype het betreft."
         ),
     )
+
+
+class RichtingChoices(DjangoChoices):
+    inkomend = ChoiceItem("inkomend", _("Inkomend"))
+    intern = ChoiceItem("intern", _("Intern"))
+    uitgaand = ChoiceItem("uitgaand", _("Uitgaand"))

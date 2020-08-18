@@ -21,7 +21,7 @@ def get_procestypen(processtype_year: int = None) -> List[dict]:
     return client.list("procestype", query_params=query_params)
 
 
-@cache("selectielijst:resultaattypeomschrijvingen", timeout=60 * 60 * 24)
+# @cache("selectielijst:resultaattypeomschrijvingen", timeout=60 * 60 * 24)
 def get_resultaattype_omschrijvingen() -> List[dict]:
     client = get_client()
     return client.list("resultaattypeomschrijvinggeneriek")
