@@ -14,6 +14,6 @@ def import_from_xml(file: str, catalogus: str, year: int):
     logger.info("finish parsing")
     logger.info("start loading")
 
-    load_data(zaaktypen, catalogus)
+    load_data(zaaktypen, iotypen, catalogus)
 
     logger.info("finish loading")
