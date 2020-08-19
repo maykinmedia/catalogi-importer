@@ -1,6 +1,10 @@
+import logging
+from datetime import date
 from typing import Dict, List
 
 from zgw_consumers.models import Service
+
+logger = logging.getLogger(__name__)
 
 
 def client_from_url(url):
@@ -19,8 +23,6 @@ def create_zaaktype_children(children_data: List[dict], zaaktype: str, resource:
         child = client.create(resource, data=child_data)
         children.append(child)
 
-    print(f"created {resource}: {[child['url'] for child in children]}")
-
     return children
 
 
@@ -30,8 +32,6 @@ def create_zaaktype(zaaktype_data, catalogus):
     zaaktype_data["catalogus"] = catalogus
     zaaktype = client.create("zaaktype", data=zaaktype_data)
 
-    print(f"create zaaktype={zaaktype['url']}")
-
     return zaaktype
 
 
@@ -39,9 +39,13 @@ def create_informatieobjecttype(iotype_data, catalogus):
     client = client_from_url(catalogus)
 
     iotype_data["catalogus"] = catalogus
+    if not iotype_data["beginGeldigheid"]:
+        today = date.today().isoformat()
+        iotype_data["beginGeldigheid"] = today
+        logger.warning(
+            f"iotype {iotype_data['omschrijving']} doesn't have beginGeldigheid. It's set as {today}"
+        )
     iotype = client.create("informatieobjecttype", data=iotype_data)
-
-    print(f"create iotype={iotype['url']}")
 
     return iotype
 
@@ -59,8 +63,6 @@ def create_zaaktype_informatieobjecttypen(
         ziotype = client.create("zaakinformatieobjecttype", data=ziotype_data)
 
         ziotypen.append(ziotype)
-
-    print(f"created ziotypen: {[ziotype['url'] for ziotype in ziotypen]}")
 
     return ziotypen
 

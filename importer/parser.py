@@ -25,7 +25,6 @@ DEFAULT_ROL_OMSCHRIVING = RolOmschrijving.adviseur
 DEFAULT_ARCHIEFNOMINATIE = Archiefnominatie.vernietigen
 DEFAULT_AFLEIDINGSWIJZE = BrondatumArchiefprocedureAfleidingswijze.afgehandeld
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -33,12 +32,18 @@ class ParserException(Exception):
     pass
 
 
-def find(el: etree.ElementBase, path: str) -> str:
+def find(el: etree.ElementBase, path: str, required=True) -> str:
     """find child element and return its text"""
-    return el.find(path).text or ""
+    result = el.find(path).text
+    if not result and required:
+        raise ParserException(f"the element with path {path} is empty")
+    return result or ""
 
 
-def get_duration(value: str, units: str) -> str:
+def get_duration(value: str, units: str) -> Optional[str]:
+    if not value:
+        return None
+
     iso_units = ""
     if units.lower() == "dag":
         iso_units = "D"
@@ -80,7 +85,11 @@ def get_choice_field(value: str, choices: dict, default="") -> str:
 def get_procestype(process: etree.ElementBase, processtype_year: int) -> str:
     # use vernietigingsgrondslag from the first resultaattype of this zaaktype
     xpath = "resultaattypen/resultaattype/velden/vernietigingsgrondslag/list/fields/field[@naam='NAAM']"
-    resultaat_name = find(process, xpath)
+    try:
+        resultaat_name = find(process, xpath, False)
+    except AttributeError:
+        return ""
+
     if not resultaat_name:
         return ""
 
@@ -110,7 +119,12 @@ def get_resultaattype_omschrijving(resultaattype: etree.ElementBase) -> str:
 
 def get_resultaat(resultaattype: etree.ElementBase, processtype: str) -> str:
     xpath = "velden/vernietigingsgrondslag/list/fields/field[@naam='NAAM']"
-    resultaat_name = find(resultaattype, xpath)
+    try:
+        resultaat_name = find(resultaattype, xpath, False)
+    except AttributeError:
+        raise ParserException(
+            "the resultaattype doesn't have vernietigingsgrondslag/list attribute"
+        )
     if not resultaat_name:
         return ""
 
@@ -133,20 +147,22 @@ def construct_zaaktype_data(process: etree.ElementBase, processtype_year: int) -
     fields = process.find("velden")
 
     indicatie_intern_of_extern = (
-        "extern" if "extern" in find(fields, "zaaktype-categorie").lower() else "intern"
+        "extern"
+        if "extern" in find(fields, "zaaktype-categorie", False).lower()
+        else "intern"
     )
     return {
         "identificatie": process.get("id"),
         "omschrijving": find(fields, "kernomschrijving"),
-        "omschrijvingGeneriek": find(fields, "model-kernomschrijving"),
+        "omschrijvingGeneriek": find(fields, "model-kernomschrijving", False),
         "vertrouwelijkheidaanduiding": get_choice_field(
-            find(fields, "vertrouwelijkheid"),
+            find(fields, "vertrouwelijkheid", False),
             VertrouwelijkheidsAanduidingen.values,
             DEFAULT_VERTROUWELIJKHEID,
         ),
         "doel": find(fields, "naam"),
         "aanleiding": find(fields, "aanleiding"),
-        "toelichting": find(fields, "toelichting-proces"),
+        "toelichting": find(fields, "toelichting-proces", False),
         "indicatieInternOfExtern": indicatie_intern_of_extern,
         "handelingInitiator": find(
             fields, "zaaktype-naam/structuur/handeling-initiator"
@@ -160,23 +176,25 @@ def construct_zaaktype_data(process: etree.ElementBase, processtype_year: int) -
             find(fields, "afdoeningstermijn-eenheid"),
         ),
         "opschortingEnAanhoudingMogelijk": get_boolean(
-            find(fields, "aanhouden-mogelijk")
+            find(fields, "aanhouden-mogelijk", False)
         ),
         # fixme cam't be set without verlengingstermijn field
         # "verlengingMogelijk": get_boolean(find(fields, "beroep-mogelijk")),
         "verlengingMogelijk": False,
-        "trefwoorden": get_array(find(fields, "lokale-trefwoorden")),  # always empty?
-        "publicatieIndicatie": get_boolean(find(fields, "publicatie-indicatie")),
-        "publicatietekst": find(fields, "publicatietekst"),
+        "trefwoorden": get_array(
+            find(fields, "lokale-trefwoorden", False)
+        ),  # always empty?
+        "publicatieIndicatie": get_boolean(find(fields, "publicatie-indicatie", False)),
+        "publicatietekst": find(fields, "publicatietekst", False),
         "verantwoordingsrelatie": get_array(
-            find(fields, "verantwoordingsrelatie")
+            find(fields, "verantwoordingsrelatie", False)
         ),  # always empty?
         "selectielijstProcestype": get_procestype(process, processtype_year),
         "referentieproces": {"naam": find(fields, "ztc-procestype")},
         # Set during `load_data`
         # "catalogus": "",
         "beginGeldigheid": get_date(find(fields, "actueel-van")),
-        "eindeGeldigheid": get_date(find(fields, "actueel-tot")),
+        "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
         "versiedatum": get_date(find(fields, "actueel-van")),
         # todo no mapping for required field
         "productenOfDiensten": [],
@@ -196,7 +214,9 @@ def construct_roltype_data(roltype: etree.ElementBase) -> dict:
     return {
         "omschrijving": find(fields, "naam"),
         "omschrijvingGeneriek": get_choice_field(
-            find(fields, "naam-model"), RolOmschrijving.values, DEFAULT_ROL_OMSCHRIVING
+            find(fields, "naam-model", False),
+            RolOmschrijving.values,
+            DEFAULT_ROL_OMSCHRIVING,
         ),
     }
 
@@ -206,8 +226,8 @@ def construct_statustype_data(statustype: etree.ElementBase) -> dict:
     return {
         "volgnummer": statustype.get("volgnummer"),
         "omschrijving": find(fields, "naam"),
-        "omschrijvingGeneriek": find(fields, "naam-model"),
-        "statustekst": find(fields, "bericht"),
+        "omschrijvingGeneriek": find(fields, "naam-model", False),
+        "statustekst": find(fields, "bericht", False),
         # todo no mapping for non-required fields
         # "informeren": true
     }
@@ -217,63 +237,60 @@ def construct_resultaattype_data(
     resultaattype: etree.ElementBase, processtype: str
 ) -> dict:
     fields = resultaattype.find("velden")
-    resultaattype_data = {}
-    try:
-        resultaattype_data = {
-            "omschrijving": find(fields, "naam"),
-            "resultaattypeomschrijving": get_resultaattype_omschrijving(resultaattype),
-            "selectielijstklasse": get_resultaat(resultaattype, processtype),
-            "toelichting": find(fields, "toelichting"),
-            "archiefnominatie": get_choice_field(
-                find(fields, "waardering"),
-                Archiefnominatie.values,
-                DEFAULT_ARCHIEFNOMINATIE,
+    return {
+        "omschrijving": find(fields, "naam")[:20],
+        "resultaattypeomschrijving": get_resultaattype_omschrijving(resultaattype),
+        "selectielijstklasse": get_resultaat(resultaattype, processtype),
+        "toelichting": find(fields, "toelichting", False),
+        "archiefnominatie": get_choice_field(
+            find(fields, "waardering", False),
+            Archiefnominatie.values,
+            DEFAULT_ARCHIEFNOMINATIE,
+        ),
+        "archiefactietermijn": get_duration(
+            find(fields, "bewaartermijn", False),
+            find(fields, "bewaartermijn-eenheid", False),
+        ),
+        "brondatumArchiefprocedure": {
+            "afleidingswijze": get_choice_field(
+                find(fields, "brondatum-archiefprocedure", False),
+                BrondatumArchiefprocedureAfleidingswijze.values,
+                DEFAULT_AFLEIDINGSWIJZE,
             ),
-            "archiefactietermijn": get_duration(
-                find(fields, "bewaartermijn"), find(fields, "bewaartermijn-eenheid")
-            ),
-            "brondatumArchiefprocedure": {
-                "afleidingswijze": get_choice_field(
-                    find(fields, "brondatum-archiefprocedure"),
-                    BrondatumArchiefprocedureAfleidingswijze.values,
-                    DEFAULT_AFLEIDINGSWIJZE,
-                ),
-                # fixme fixed values are set to prevent 500 error
-                "datumkenmerk": "",
-                "einddatumBekend": False,
-                "objecttype": "",
-                "registratie": "",
-                "procestermijn": None,
-            },
-        }
-    #  fixme what to do with resultaattypen which don't match with selectielijst data?
-    except ParserException as exc:
-        logger.warning(f"the resultaattype can't be parsed due to: {exc}")
-        print(f"the resultaattype can't be parsed due to: {exc}")
-    return resultaattype_data
+            # fixme fixed values are set to prevent 500 error
+            "datumkenmerk": "",
+            "einddatumBekend": False,
+            "objecttype": "",
+            "registratie": "",
+            "procestermijn": None,
+        },
+    }
 
 
 def construct_iotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "omschrijving": find(fields, "naam"),
+        "omschrijving": find(fields, "naam").strip(),
         # fixme this field is always empty in the example xml
         "vertrouwelijkheidaanduiding": get_choice_field(
-            find(fields, "vertrouwelijkheid"),
+            find(fields, "vertrouwelijkheid", False),
             VertrouwelijkheidsAanduidingen.values,
             DEFAULT_VERTROUWELIJKHEID,
         ),
-        "beginGeldigheid": get_date(find(fields, "actueel-van")),
-        "eindeGeldigheid": get_date(find(fields, "actueel-tot")),
+        # begin data whould be set during merging different iotypen later
+        "beginGeldigheid": get_date(find(fields, "actueel-van", False)),
+        "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
     }
 
 
 def construct_ziotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "informatieobjecttype_omschrijving": find(fields, "naam"),
+        "informatieobjecttype_omschrijving": find(fields, "naam").strip(),
         "volgnummer": document.get("volgnummer"),
-        "richting": get_choice_field(find(fields, "type"), RichtingChoices.values),
+        "richting": get_choice_field(
+            find(fields, "type", False), RichtingChoices.values
+        ),
         # todo no mapping for non-required fields
         # "statustype": "http://example.com"
     }
@@ -286,7 +303,13 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
     zaaktypen_data = []
     iotypen_dict = {}
     for process in tree.xpath("/dsp/processen")[0]:
-        zaaktype_data = construct_zaaktype_data(process, processtype_year)
+        try:
+            zaaktype_data = construct_zaaktype_data(process, processtype_year)
+        except ParserException as exc:
+            logger.warning(
+                f"the zaaktype {process.get('id')} can't be parsed due to: {exc}"
+            )
+            continue
 
         roltypen_data = [
             construct_roltype_data(roltype) for roltype in process.find("roltypen")
@@ -295,12 +318,20 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
             construct_statustype_data(statustype)
             for statustype in process.find("statustypen")
         ]
-        resultaattypen_data = [
-            construct_resultaattype_data(
-                resultaattype, zaaktype_data["selectielijstProcestype"]
-            )
-            for resultaattype in process.find("resultaattypen")
-        ]
+        resultaattypen_data = []
+        for resultaattype in process.find("resultaattypen"):
+            try:
+                resultaatype_data = construct_resultaattype_data(
+                    resultaattype, zaaktype_data["selectielijstProcestype"]
+                )
+            except ParserException as exc:
+                logger.warning(
+                    f"the resultaattype {resultaattype.get('id')} can't be parsed due to: {exc}"
+                )
+                continue
+            else:
+                resultaattypen_data.append(resultaatype_data)
+
         resultaattypen_data = [r for r in resultaattypen_data if r]
 
         iotypen_data = [
@@ -325,10 +356,12 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
             if (
                 iotype_data["omschrijving"] in iotypen_dict
                 and iotype_data != iotypen_dict[iotype_data["omschrijving"]]
+                and iotypen_dict[iotype_data["omschrijving"]]["beginGeldigheid"]
             ):
-                raise ParserException(
+                logger.warning(
                     f"there are different informatieobjectypen with the same omschriving: {iotype_data['omschrijving']}"
                 )
-            iotypen_dict[iotype_data["omschrijving"]] = iotype_data
+            else:
+                iotypen_dict[iotype_data["omschrijving"]] = iotype_data
 
     return zaaktypen_data, list(iotypen_dict.values())
