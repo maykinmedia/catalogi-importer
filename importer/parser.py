@@ -24,6 +24,11 @@ DEFAULT_VERTROUWELIJKHEID = VertrouwelijkheidsAanduidingen.openbaar
 DEFAULT_ROL_OMSCHRIVING = RolOmschrijving.adviseur
 DEFAULT_ARCHIEFNOMINATIE = Archiefnominatie.vernietigen
 DEFAULT_AFLEIDINGSWIJZE = BrondatumArchiefprocedureAfleidingswijze.afgehandeld
+DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN = "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/50060769-96b3-4993-ae6a-35ae5fd14604"
+DEFAULT_HANDELING_INITIATOR = "n.v.t."
+DEFATUL_AANLEIDING = "n.v.t."
+DEFAULT_ONDERWERP = "n.v.t."
+DEFAULT_HANDELING_BEHANDELAAR = "n.v.t."
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +81,9 @@ def get_date(value: str) -> Optional[str]:
 
 
 def get_choice_field(value: str, choices: dict, default="") -> str:
-    if value.lower() in choices:
-        return value.lower()
+    formatted_value = value.lower().replace(" ", "_")
+    if formatted_value in choices:
+        return formatted_value
 
     return default
 
@@ -103,16 +109,17 @@ def get_procestype(process: etree.ElementBase, processtype_year: int) -> str:
 
 def get_resultaattype_omschrijving(resultaattype: etree.ElementBase) -> str:
     # Infer URL from naam-model
-    omschriving = find(resultaattype, "velden/naam-model")
+    omschriving = find(resultaattype, "velden/naam-model", False)
     resultaattype_omschrijvingen = get_resultaattype_omschrijvingen()
     filtered_omschrijvingen = [
         r for r in resultaattype_omschrijvingen if r["omschrijving"] == omschriving
     ]
 
     if not filtered_omschrijvingen:
-        raise ParserException(
+        logger.warning(
             f"selectielijst API doesn't have matching resultaattypeomschrijving = {omschriving}"
         )
+        return DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN
 
     return filtered_omschrijvingen[0]["url"]
 
@@ -151,6 +158,29 @@ def construct_zaaktype_data(process: etree.ElementBase, processtype_year: int) -
         if "extern" in find(fields, "zaaktype-categorie", False).lower()
         else "intern"
     )
+    handeling_initiator = (
+        find(fields, "zaaktype-naam/structuur/handeling-initiator", False)
+        or DEFAULT_HANDELING_INITIATOR
+    )
+    aanleiding = find(fields, "aanleiding", False) or DEFATUL_AANLEIDING
+    onderwerp = (
+        find(fields, "zaaktype-naam/structuur/onderwerp", False) or DEFAULT_ONDERWERP
+    )
+    handeling_behandelaar = (
+        find(fields, "zaaktype-naam/structuur/handeling-behandelaar", False)
+        or DEFAULT_HANDELING_BEHANDELAAR
+    )
+
+    doorlooptijd = get_duration(
+        find(fields, "afdoeningstermijn", False),
+        find(fields, "afdoeningstermijn-eenheid", False),
+    )
+    if not doorlooptijd:
+        doorlooptijd = get_duration(
+            find(fields, "wettelijke-afdoeningstermijn"),
+            find(fields, "wettelijke-afdoeningstermijn-eenheid"),
+        )
+
     return {
         "identificatie": process.get("id"),
         "omschrijving": find(fields, "kernomschrijving"),
@@ -161,20 +191,13 @@ def construct_zaaktype_data(process: etree.ElementBase, processtype_year: int) -
             DEFAULT_VERTROUWELIJKHEID,
         ),
         "doel": find(fields, "naam"),
-        "aanleiding": find(fields, "aanleiding"),
+        "aanleiding": aanleiding,
         "toelichting": find(fields, "toelichting-proces", False),
         "indicatieInternOfExtern": indicatie_intern_of_extern,
-        "handelingInitiator": find(
-            fields, "zaaktype-naam/structuur/handeling-initiator"
-        ),
-        "onderwerp": find(fields, "zaaktype-naam/structuur/onderwerp"),
-        "handelingBehandelaar": find(
-            fields, "zaaktype-naam/structuur/handeling-behandelaar"
-        ),
-        "doorlooptijd": get_duration(
-            find(fields, "afdoeningstermijn"),
-            find(fields, "afdoeningstermijn-eenheid"),
-        ),
+        "handelingInitiator": handeling_initiator,
+        "onderwerp": onderwerp,
+        "handelingBehandelaar": handeling_behandelaar,
+        "doorlooptijd": doorlooptijd,
         "opschortingEnAanhoudingMogelijk": get_boolean(
             find(fields, "aanhouden-mogelijk", False)
         ),

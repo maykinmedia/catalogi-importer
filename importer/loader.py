@@ -2,6 +2,7 @@ import logging
 from datetime import date
 from typing import Dict, List
 
+from zds_client.client import ClientError
 from zgw_consumers.models import Service
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,14 @@ def create_zaaktype_children(children_data: List[dict], zaaktype: str, resource:
     for child_data in children_data:
         child_data["zaaktype"] = zaaktype
 
-        child = client.create(resource, data=child_data)
+        try:
+            child = client.create(resource, data=child_data)
+        except ClientError as exc:
+            logger.warning(
+                f"{resource} {child_data.get('omschrijving')} can't be created: {exc}"
+            )
+            continue
+
         children.append(child)
 
     return children
@@ -77,7 +85,14 @@ def load_data(zaaktypen_data: List[dict], iotypen_data: List[dict], catalogus: s
     for zaaktype_data in zaaktypen_data:
         children = zaaktype_data.pop("_children")
 
-        zaaktype = create_zaaktype(zaaktype_data, catalogus)
+        try:
+            zaaktype = create_zaaktype(zaaktype_data, catalogus)
+        except ClientError as exc:
+            logger.warning(
+                f"zaaktype {zaaktypen_data['identificatie']} can't be created: {exc}"
+            )
+            continue
+
         zaaktype_url = zaaktype["url"]
 
         # create zaaktype relative objects
