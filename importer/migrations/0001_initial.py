@@ -35,6 +35,8 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"verbose_name": "Selectielijst configuration",},
+            options={
+                "verbose_name": "Selectielijst configuration",
+            },
         ),
     ]

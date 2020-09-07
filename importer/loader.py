@@ -14,18 +14,22 @@ def client_from_url(url):
     return client
 
 
-def create_zaaktype_children(children_data: List[dict], zaaktype: str, resource: str):
-    client = client_from_url(zaaktype)
+def create_zaaktype_children(children_data: List[dict], zaaktype: dict, resource: str):
+    zaaktype_url = zaaktype["url"]
+    client = client_from_url(zaaktype_url)
 
     children = []
     for child_data in children_data:
-        child_data["zaaktype"] = zaaktype
+        child_data["zaaktype"] = zaaktype_url
 
         try:
             child = client.create(resource, data=child_data)
         except ClientError as exc:
             logger.warning(
-                f"{resource} {child_data.get('omschrijving')} can't be created: {exc}"
+                f"zaaktype {zaaktype['identificatie']} {resource} {child_data.get('omschrijving')} can't be created: {exc}"
+            )
+            print(
+                f"zaaktype {zaaktype['identificatie']} {resource} {child_data.get('omschrijving')} can't be created: {exc}"
             )
             continue
 
@@ -59,15 +63,16 @@ def create_informatieobjecttype(iotype_data, catalogus):
 
 
 def create_zaaktype_informatieobjecttypen(
-    ziotypen_data: List[dict], iotypen_urls: Dict[str, str], zaaktype: str
+    ziotypen_data: List[dict], iotypen_urls: Dict[str, str], zaaktype: dict
 ):
-    client = client_from_url(zaaktype)
+    zaaktype_url = zaaktype["url"]
+    client = client_from_url(zaaktype_url)
 
     ziotypen = []
     for ziotype_data in ziotypen_data:
         iotype_omschriving = ziotype_data.pop("informatieobjecttype_omschrijving")
         ziotype_data["informatieobjecttype"] = iotypen_urls[iotype_omschriving]
-        ziotype_data["zaaktype"] = zaaktype
+        ziotype_data["zaaktype"] = zaaktype_url
         ziotype = client.create("zaakinformatieobjecttype", data=ziotype_data)
 
         ziotypen.append(ziotype)
@@ -91,16 +96,13 @@ def load_data(zaaktypen_data: List[dict], iotypen_data: List[dict], catalogus: s
             logger.warning(
                 f"zaaktype {zaaktypen_data['identificatie']} can't be created: {exc}"
             )
+            print(f"zaaktype {zaaktypen_data['identificatie']} can't be created: {exc}")
             continue
 
-        zaaktype_url = zaaktype["url"]
-
         # create zaaktype relative objects
-        create_zaaktype_children(children["roltypen"], zaaktype_url, "roltype")
-        create_zaaktype_children(children["statustypen"], zaaktype_url, "statustype")
-        create_zaaktype_children(
-            children["resultaattypen"], zaaktype_url, "resultaattype"
-        )
+        create_zaaktype_children(children["roltypen"], zaaktype, "roltype")
+        create_zaaktype_children(children["statustypen"], zaaktype, "statustype")
+        create_zaaktype_children(children["resultaattypen"], zaaktype, "resultaattype")
         create_zaaktype_informatieobjecttypen(
-            children["zaakinformatieobjecttypen"], iotypen_urls, zaaktype_url
+            children["zaakinformatieobjecttypen"], iotypen_urls, zaaktype
         )
