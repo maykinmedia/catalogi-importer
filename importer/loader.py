@@ -84,6 +84,23 @@ def create_zaaktype_children(children_data: List[dict], zaaktype: dict, resource
     return children
 
 
+def create_resultaattypen(resultaattypen_data: List[dict], zaaktype: dict):
+    for resultaattype_data in resultaattypen_data:
+        brondatum_params = resultaattype_data["brondatumArchiefprocedure"]
+        if brondatum_params["afleidingswijze"] == "ander_datumkenmerk":
+            brondatum_params["objecttype"] = "overige"
+            brondatum_params["registratie"] = "TODO"
+            logger.warning(
+                f"resultaattype {resultaattype_data['omschrijving']} doesn't have "
+                f"brondatumArchiefprocedure.objecttype. It's set as 'overige'"
+            )
+            logger.warning(
+                f"resultaattype {resultaattype_data['omschrijving']} doesn't have "
+                f"brondatumArchiefprocedure.registratie. It's set as 'TODO'"
+            )
+    return create_zaaktype_children(resultaattypen_data, zaaktype, "resultaattype")
+
+
 def create_zaaktype(zaaktype_data, catalogus):
     client = client_from_url(catalogus)
 
@@ -161,7 +178,7 @@ def load_data(
         # create zaaktype relative objects
         create_zaaktype_children(children["roltypen"], zaaktype, "roltype")
         create_zaaktype_children(children["statustypen"], zaaktype, "statustype")
-        create_zaaktype_children(children["resultaattypen"], zaaktype, "resultaattype")
+        create_resultaattypen(children["resultaattypen"], zaaktype)
         create_zaaktype_informatieobjecttypen(
             children["zaakinformatieobjecttypen"], iotypen_urls, zaaktype
         )

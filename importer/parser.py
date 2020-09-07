@@ -269,11 +269,12 @@ def construct_resultaattype_data(
     resultaattype: etree.ElementBase, processtype: str
 ) -> dict:
     fields = resultaattype.find("velden")
+    toelichting = find(fields, "toelichting", False)
     return {
         "omschrijving": find(fields, "naam")[:20],
         "resultaattypeomschrijving": get_resultaattype_omschrijving(resultaattype),
         "selectielijstklasse": get_resultaat(resultaattype, processtype),
-        "toelichting": find(fields, "toelichting", False),
+        "toelichting": toelichting,
         "archiefnominatie": get_choice_field(
             find(fields, "waardering", False),
             Archiefnominatie.values,
@@ -289,8 +290,8 @@ def construct_resultaattype_data(
                 BrondatumArchiefprocedureAfleidingswijze.values,
                 DEFAULT_AFLEIDINGSWIJZE,
             ),
+            "datumkenmerk": toelichting.split(",")[-1].strip(),
             # fixme fixed values are set to prevent 500 error
-            "datumkenmerk": "",
             "einddatumBekend": False,
             "objecttype": "",
             "registratie": "",
