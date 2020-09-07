@@ -99,7 +99,10 @@ def get_resultaat_number(resultaattype: etree.ElementBase) -> str:
         return re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name).group(1)
 
     toechlichting = find(resultaattype, "velden/toelichting", False)
-    return re.match(r"(.*?), .*", toechlichting).group(1)
+    if toechlichting:
+        return re.match(r"(.*?), .*", toechlichting).group(1)
+
+    return ""
 
 
 def get_procestype(process: etree.ElementBase, processtype_year: int) -> str:
