@@ -10,11 +10,14 @@ class Command(BaseCommand):
         parser.add_argument("file")
         parser.add_argument("catalogus")
         parser.add_argument("year")
+        parser.add_argument("--force", dest="force", action="store_true")
+        parser.set_defaults(force=False)
 
     def handle(self, **options):
         file = options["file"]
         catalogus = options["catalogus"]
         year = int(options["year"])
+        force = options["force"]
 
         # parse to python primitives
-        import_from_xml(file, catalogus, year)
+        import_from_xml(file, catalogus, year, force)

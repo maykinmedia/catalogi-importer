@@ -88,18 +88,32 @@ def get_choice_field(value: str, choices: dict, default="") -> str:
     return default
 
 
+def get_resultaat_number(resultaattype: etree.ElementBase) -> str:
+    xpath = "velden/vernietigingsgrondslag/list/fields/field[@naam='NAAM']"
+    try:
+        resultaat_name = find(resultaattype, xpath, False)
+    except AttributeError:
+        resultaat_name = ""
+
+    if resultaat_name:
+        return re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name).group(1)
+
+    toechlichting = find(resultaattype, "velden/toelichting", False)
+    if toechlichting:
+        return re.match(r"(.*?), .*", toechlichting).group(1)
+
+    return ""
+
+
 def get_procestype(process: etree.ElementBase, processtype_year: int) -> str:
     # use vernietigingsgrondslag from the first resultaattype of this zaaktype
-    xpath = "resultaattypen/resultaattype/velden/vernietigingsgrondslag/list/fields/field[@naam='NAAM']"
-    try:
-        resultaat_name = find(process, xpath, False)
-    except AttributeError:
+    resultaattype = process.find("resultaattypen/resultaattype")
+    resultaat_number = get_resultaat_number(resultaattype)
+
+    if not resultaat_number:
         return ""
 
-    if not resultaat_name:
-        return ""
-
-    procestype_number = int(re.match(r"Resultaat (\d+)\.\d+", resultaat_name).group(1))
+    procestype_number = int(resultaat_number.split(".")[0])
     procestype = [
         p for p in get_procestypen(processtype_year) if p["nummer"] == procestype_number
     ][0]
@@ -125,26 +139,21 @@ def get_resultaattype_omschrijving(resultaattype: etree.ElementBase) -> str:
 
 
 def get_resultaat(resultaattype: etree.ElementBase, processtype: str) -> str:
-    xpath = "velden/vernietigingsgrondslag/list/fields/field[@naam='NAAM']"
-    try:
-        resultaat_name = find(resultaattype, xpath, False)
-    except AttributeError:
+    resultaat_number = get_resultaat_number(resultaattype)
+    if not resultaat_number:
         raise ParserException(
-            "the resultaattype doesn't have vernietigingsgrondslag/list attribute"
+            "the resultaattype doesn't have selectielijst resultaat number"
         )
-    if not resultaat_name:
-        return ""
 
-    volledig_nummer = re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name).group(1)
     resultaten = get_resultaaten()
     filtered_resultaaten = [
         r
         for r in resultaten
-        if r["volledigNummer"] == volledig_nummer and r["procesType"] == processtype
+        if r["volledigNummer"] == resultaat_number and r["procesType"] == processtype
     ]
     if not filtered_resultaaten:
         raise ParserException(
-            f"selectielijst API doesn't have matching resultaat with volledig_nummer = {volledig_nummer}"
+            f"selectielijst API doesn't have matching resultaat with volledig_nummer = {resultaat_number}"
         )
 
     return filtered_resultaaten[0]["url"]
@@ -260,11 +269,12 @@ def construct_resultaattype_data(
     resultaattype: etree.ElementBase, processtype: str
 ) -> dict:
     fields = resultaattype.find("velden")
+    toelichting = find(fields, "toelichting", False)
     return {
         "omschrijving": find(fields, "naam")[:20],
         "resultaattypeomschrijving": get_resultaattype_omschrijving(resultaattype),
         "selectielijstklasse": get_resultaat(resultaattype, processtype),
-        "toelichting": find(fields, "toelichting", False),
+        "toelichting": toelichting,
         "archiefnominatie": get_choice_field(
             find(fields, "waardering", False),
             Archiefnominatie.values,
@@ -280,8 +290,8 @@ def construct_resultaattype_data(
                 BrondatumArchiefprocedureAfleidingswijze.values,
                 DEFAULT_AFLEIDINGSWIJZE,
             ),
+            "datumkenmerk": toelichting.split(",")[-1].strip(),
             # fixme fixed values are set to prevent 500 error
-            "datumkenmerk": "",
             "einddatumBekend": False,
             "objecttype": "",
             "registratie": "",
@@ -349,13 +359,11 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
                 )
             except ParserException as exc:
                 logger.warning(
-                    f"the resultaattype {resultaattype.get('id')} can't be parsed due to: {exc}"
+                    f"zaaktype {process.get('id')} resultaattype {resultaattype.get('id')} can't be parsed due to: {exc}"
                 )
                 continue
             else:
                 resultaattypen_data.append(resultaatype_data)
-
-        resultaattypen_data = [r for r in resultaattypen_data if r]
 
         iotypen_data = [
             construct_iotype_data(document)
