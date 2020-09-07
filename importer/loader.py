@@ -4,6 +4,7 @@ from typing import Dict, List
 
 from zds_client.client import ClientError
 from zgw_consumers.models import Service
+from zgw_consumers.service import get_paginated_results
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,54 @@ def client_from_url(url):
     client = Service.get_client(url)
     assert client, "A service must be configured first"
     return client
+
+
+def force_delete_iotypen(catalogus: str, iotypen_data: List[dict]):
+    omschrijvings = [iotype_data["omschrijving"] for iotype_data in iotypen_data]
+    client = client_from_url(catalogus)
+    existed_iotypen = get_paginated_results(
+        client,
+        "informatieobjecttype",
+        query_params={"catalogus": catalogus, "status": "alles"},
+    )
+    filtered_iotypen = [
+        iotype for iotype in existed_iotypen if iotype["omschrijving"] in omschrijvings
+    ]
+    if filtered_iotypen:
+        logger.info(f"{len(filtered_iotypen)} informatieobjecttypen will be overridden")
+
+    for iotype in filtered_iotypen:
+        try:
+            client.delete("informatieobjecttype", url=iotype["url"])
+        except ClientError as exc:
+            logger.warning(
+                f"informatieobjecttype {iotype['url']} can't be deleted: {exc}"
+            )
+            continue
+
+
+def force_delete_zaaktypen(catalogus: str, zaaktypen_data: List[dict]):
+    identificaties = [
+        zaaktype_data["identificatie"] for zaaktype_data in zaaktypen_data
+    ]
+    client = client_from_url(catalogus)
+    existed_zaaktypen = get_paginated_results(
+        client, "zaaktype", query_params={"catalogus": catalogus, "status": "alles"}
+    )
+    filtered_zaaktypen = [
+        iotype
+        for iotype in existed_zaaktypen
+        if iotype["identificatie"] in identificaties
+    ]
+    if filtered_zaaktypen:
+        logger.info(f"{len(filtered_zaaktypen)} zaaktypen will be overridden")
+
+    for zaaktype in filtered_zaaktypen:
+        try:
+            client.delete("zaaktype", url=zaaktype["url"])
+        except ClientError as exc:
+            logger.warning(f"zaaktype {zaaktype['url']} can't be deleted: {exc}")
+            continue
 
 
 def create_zaaktype_children(children_data: List[dict], zaaktype: dict, resource: str):
@@ -26,9 +75,6 @@ def create_zaaktype_children(children_data: List[dict], zaaktype: dict, resource
             child = client.create(resource, data=child_data)
         except ClientError as exc:
             logger.warning(
-                f"zaaktype {zaaktype['identificatie']} {resource} {child_data.get('omschrijving')} can't be created: {exc}"
-            )
-            print(
                 f"zaaktype {zaaktype['identificatie']} {resource} {child_data.get('omschrijving')} can't be created: {exc}"
             )
             continue
@@ -80,11 +126,25 @@ def create_zaaktype_informatieobjecttypen(
     return ziotypen
 
 
-def load_data(zaaktypen_data: List[dict], iotypen_data: List[dict], catalogus: str):
-    iotypen = [
-        create_informatieobjecttype(iotype_data, catalogus)
-        for iotype_data in iotypen_data
-    ]
+def load_data(
+    zaaktypen_data: List[dict], iotypen_data: List[dict], catalogus: str, force: bool
+):
+    if force:
+        force_delete_iotypen(catalogus, iotypen_data)
+        force_delete_zaaktypen(catalogus, zaaktypen_data)
+
+    iotypen = []
+    for iotype_data in iotypen_data:
+        try:
+            iotype = create_informatieobjecttype(iotype_data, catalogus)
+        except ClientError as exc:
+            logger.warning(
+                f"informatieobjecttype {iotype_data['omschrijving']} can't be created: {exc}"
+            )
+            continue
+        else:
+            iotypen.append(iotype)
+
     iotypen_urls = {iotype["omschrijving"]: iotype["url"] for iotype in iotypen}
 
     for zaaktype_data in zaaktypen_data:
@@ -94,9 +154,8 @@ def load_data(zaaktypen_data: List[dict], iotypen_data: List[dict], catalogus: s
             zaaktype = create_zaaktype(zaaktype_data, catalogus)
         except ClientError as exc:
             logger.warning(
-                f"zaaktype {zaaktypen_data['identificatie']} can't be created: {exc}"
+                f"zaaktype {zaaktype_data['identificatie']} can't be created: {exc}"
             )
-            print(f"zaaktype {zaaktypen_data['identificatie']} can't be created: {exc}")
             continue
 
         # create zaaktype relative objects

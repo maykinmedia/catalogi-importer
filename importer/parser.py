@@ -338,7 +338,6 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
             logger.warning(
                 f"the zaaktype {process.get('id')} can't be parsed due to: {exc}"
             )
-            print(f"the zaaktype {process.get('id')} can't be parsed due to: {exc}")
             continue
 
         roltypen_data = [
@@ -358,14 +357,9 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
                 logger.warning(
                     f"zaaktype {process.get('id')} resultaattype {resultaattype.get('id')} can't be parsed due to: {exc}"
                 )
-                print(
-                    f"zaaktype {process.get('id')} resultaattype {resultaattype.get('id')} can't be parsed due to: {exc}"
-                )
                 continue
             else:
                 resultaattypen_data.append(resultaatype_data)
-
-        resultaattypen_data = [r for r in resultaattypen_data if r]
 
         iotypen_data = [
             construct_iotype_data(document)
