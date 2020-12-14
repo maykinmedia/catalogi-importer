@@ -110,8 +110,8 @@ def create_zaaktype(zaaktype_data, catalogus):
     return zaaktype
 
 
-def create_informatieobjecttype(iotype_data, catalogus):
-    client = client_from_url(catalogus)
+def create_informatieobjecttype(iotype_data, catalogus, client=None):
+    client = client or client_from_url(catalogus)
 
     iotype_data["catalogus"] = catalogus
     if not iotype_data["beginGeldigheid"]:
@@ -151,7 +151,9 @@ def load_data(
         force_delete_zaaktypen(catalogus, zaaktypen_data)
 
     iotypen = []
+
     for iotype_data in iotypen_data:
+
         try:
             iotype = create_informatieobjecttype(iotype_data, catalogus)
         except ClientError as exc:
