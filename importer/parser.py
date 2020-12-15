@@ -1,8 +1,8 @@
-import datetime
 import logging
 import re
 from typing import Optional, Tuple
 
+from dateutil.parser import isoparse
 from lxml import etree
 from zgw_consumers.api_models.constants import (
     RolOmschrijving,
@@ -77,7 +77,7 @@ def get_date(value: str) -> Optional[str]:
     if not value:
         return None
 
-    return datetime.datetime.fromisoformat(value).date().isoformat()
+    return isoparse(value).date().isoformat()
 
 
 def get_choice_field(value: str, choices: dict, default="") -> str:
@@ -314,7 +314,7 @@ def construct_resultaattype_data(
 def construct_iotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "omschrijving": find(fields, "naam").strip()[:80],
+        "omschrijving": find(fields, "naam")[:80].strip(),
         # fixme this field is always empty in the example xml
         "vertrouwelijkheidaanduiding": get_choice_field(
             find(fields, "vertrouwelijkheid", False),
@@ -330,7 +330,7 @@ def construct_iotype_data(document: etree.ElementBase) -> dict:
 def construct_ziotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "informatieobjecttype_omschrijving": find(fields, "naam").strip()[:80],
+        "informatieobjecttype_omschrijving": find(fields, "naam")[:80].strip(),
         "volgnummer": document.get("volgnummer"),
         "richting": get_choice_field(
             find(fields, "type", False), RichtingChoices.values
