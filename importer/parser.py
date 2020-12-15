@@ -95,11 +95,15 @@ def get_resultaat_number(resultaattype: etree.ElementBase) -> str:
     except AttributeError:
         resultaat_name = ""
 
-    if resultaat_name:
+    if resultaat_name and re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name):
         return re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name).group(1)
 
-    toechlichting = find(resultaattype, "velden/toelichting", False)
-    if toechlichting:
+    try:
+        toechlichting = find(resultaattype, "velden/toelichting", False)
+    except AttributeError:
+        toechlichting = None
+
+    if toechlichting and re.match(r"(.*?), .*", toechlichting):
         return re.match(r"(.*?), .*", toechlichting).group(1)
 
     return ""
@@ -130,7 +134,7 @@ def get_resultaattype_omschrijving(resultaattype: etree.ElementBase) -> str:
     ]
 
     if not filtered_omschrijvingen:
-        logger.warning(
+        logger.info(
             f"selectielijst API doesn't have matching resultaattypeomschrijving = {omschriving}"
         )
         return DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN
@@ -270,6 +274,17 @@ def construct_resultaattype_data(
 ) -> dict:
     fields = resultaattype.find("velden")
     toelichting = find(fields, "toelichting", False)
+    afleidingswijze = get_choice_field(
+        find(fields, "brondatum-archiefprocedure", False),
+        BrondatumArchiefprocedureAfleidingswijze.values,
+        DEFAULT_AFLEIDINGSWIJZE
+    )
+    if afleidingswijze == BrondatumArchiefprocedureAfleidingswijze.afgehandeld:
+        datumkenmerk = ''
+    elif ":" in toelichting:
+        datumkenmerk = toelichting.split(":")[0]
+    else:
+        datumkenmerk = toelichting.split(",")[-1].strip()
     return {
         "omschrijving": find(fields, "naam")[:20],
         "resultaattypeomschrijving": get_resultaattype_omschrijving(resultaattype),
@@ -285,12 +300,8 @@ def construct_resultaattype_data(
             find(fields, "bewaartermijn-eenheid", False),
         ),
         "brondatumArchiefprocedure": {
-            "afleidingswijze": get_choice_field(
-                find(fields, "brondatum-archiefprocedure", False),
-                BrondatumArchiefprocedureAfleidingswijze.values,
-                DEFAULT_AFLEIDINGSWIJZE,
-            ),
-            "datumkenmerk": toelichting.split(",")[-1].strip(),
+            "afleidingswijze": afleidingswijze,
+            "datumkenmerk": datumkenmerk[:80],
             # fixme fixed values are set to prevent 500 error
             "einddatumBekend": False,
             "objecttype": "",
@@ -303,7 +314,7 @@ def construct_resultaattype_data(
 def construct_iotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "omschrijving": find(fields, "naam").strip(),
+        "omschrijving": find(fields, "naam").strip()[:80],
         # fixme this field is always empty in the example xml
         "vertrouwelijkheidaanduiding": get_choice_field(
             find(fields, "vertrouwelijkheid", False),
@@ -319,7 +330,7 @@ def construct_iotype_data(document: etree.ElementBase) -> dict:
 def construct_ziotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "informatieobjecttype_omschrijving": find(fields, "naam").strip(),
+        "informatieobjecttype_omschrijving": find(fields, "naam").strip()[:80],
         "volgnummer": document.get("volgnummer"),
         "richting": get_choice_field(
             find(fields, "type", False), RichtingChoices.values
@@ -340,7 +351,7 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
             zaaktype_data = construct_zaaktype_data(process, processtype_year)
         except ParserException as exc:
             logger.warning(
-                f"the zaaktype {process.get('id')} can't be parsed due to: {exc}"
+                f"zaaktype {process.get('id')} can't be parsed due to: {exc}"
             )
             continue
 
@@ -389,7 +400,7 @@ def parse_xml(file: str, processtype_year: int) -> Tuple[list, list]:
                 and iotype_data != iotypen_dict[iotype_data["omschrijving"]]
                 and iotypen_dict[iotype_data["omschrijving"]]["beginGeldigheid"]
             ):
-                logger.warning(
+                logger.info(
                     f"there are different informatieobjectypen with the same omschriving: {iotype_data['omschrijving']}"
                 )
             else:
