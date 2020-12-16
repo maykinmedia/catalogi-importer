@@ -90,11 +90,11 @@ def create_resultaattypen(resultaattypen_data: List[dict], zaaktype: dict):
         if brondatum_params["afleidingswijze"] == "ander_datumkenmerk":
             brondatum_params["objecttype"] = "overige"
             brondatum_params["registratie"] = "TODO"
-            logger.warning(
+            logger.info(
                 f"resultaattype {resultaattype_data['omschrijving']} doesn't have "
                 f"brondatumArchiefprocedure.objecttype. It's set as 'overige'"
             )
-            logger.warning(
+            logger.info(
                 f"resultaattype {resultaattype_data['omschrijving']} doesn't have "
                 f"brondatumArchiefprocedure.registratie. It's set as 'TODO'"
             )
@@ -117,7 +117,7 @@ def create_informatieobjecttype(iotype_data, catalogus, client=None):
     if not iotype_data["beginGeldigheid"]:
         today = date.today().isoformat()
         iotype_data["beginGeldigheid"] = today
-        logger.warning(
+        logger.info(
             f"iotype {iotype_data['omschrijving']} doesn't have beginGeldigheid. It's set as {today}"
         )
     iotype = client.create("informatieobjecttype", data=iotype_data)

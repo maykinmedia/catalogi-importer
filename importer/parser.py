@@ -1,8 +1,8 @@
-import datetime
 import logging
 import re
 from typing import Optional, Tuple
 
+from dateutil.parser import isoparse
 from lxml import etree
 from zgw_consumers.api_models.constants import (
     RolOmschrijving,
@@ -29,6 +29,7 @@ DEFAULT_HANDELING_INITIATOR = "n.v.t."
 DEFATUL_AANLEIDING = "n.v.t."
 DEFAULT_ONDERWERP = "n.v.t."
 DEFAULT_HANDELING_BEHANDELAAR = "n.v.t."
+DEFAULT_RICHTING = RichtingChoices.intern
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ def get_date(value: str) -> Optional[str]:
     if not value:
         return None
 
-    return datetime.datetime.fromisoformat(value).date().isoformat()
+    return isoparse(value).date().isoformat()
 
 
 def get_choice_field(value: str, choices: dict, default="") -> str:
@@ -277,10 +278,10 @@ def construct_resultaattype_data(
     afleidingswijze = get_choice_field(
         find(fields, "brondatum-archiefprocedure", False),
         BrondatumArchiefprocedureAfleidingswijze.values,
-        DEFAULT_AFLEIDINGSWIJZE
+        DEFAULT_AFLEIDINGSWIJZE,
     )
     if afleidingswijze == BrondatumArchiefprocedureAfleidingswijze.afgehandeld:
-        datumkenmerk = ''
+        datumkenmerk = ""
     elif ":" in toelichting:
         datumkenmerk = toelichting.split(":")[0]
     else:
@@ -314,7 +315,7 @@ def construct_resultaattype_data(
 def construct_iotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "omschrijving": find(fields, "naam").strip()[:80],
+        "omschrijving": find(fields, "naam")[:80].strip(),
         # fixme this field is always empty in the example xml
         "vertrouwelijkheidaanduiding": get_choice_field(
             find(fields, "vertrouwelijkheid", False),
@@ -330,10 +331,10 @@ def construct_iotype_data(document: etree.ElementBase) -> dict:
 def construct_ziotype_data(document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
-        "informatieobjecttype_omschrijving": find(fields, "naam").strip()[:80],
+        "informatieobjecttype_omschrijving": find(fields, "naam")[:80].strip(),
         "volgnummer": document.get("volgnummer"),
         "richting": get_choice_field(
-            find(fields, "type", False), RichtingChoices.values
+            find(fields, "type", False), RichtingChoices.values, DEFAULT_RICHTING
         ),
         # todo no mapping for non-required fields
         # "statustype": "http://example.com"
