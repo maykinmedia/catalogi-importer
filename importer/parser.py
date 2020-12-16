@@ -29,6 +29,7 @@ DEFAULT_HANDELING_INITIATOR = "n.v.t."
 DEFATUL_AANLEIDING = "n.v.t."
 DEFAULT_ONDERWERP = "n.v.t."
 DEFAULT_HANDELING_BEHANDELAAR = "n.v.t."
+DEFAULT_RICHTING = RichtingChoices.intern
 
 logger = logging.getLogger(__name__)
 
@@ -277,10 +278,10 @@ def construct_resultaattype_data(
     afleidingswijze = get_choice_field(
         find(fields, "brondatum-archiefprocedure", False),
         BrondatumArchiefprocedureAfleidingswijze.values,
-        DEFAULT_AFLEIDINGSWIJZE
+        DEFAULT_AFLEIDINGSWIJZE,
     )
     if afleidingswijze == BrondatumArchiefprocedureAfleidingswijze.afgehandeld:
-        datumkenmerk = ''
+        datumkenmerk = ""
     elif ":" in toelichting:
         datumkenmerk = toelichting.split(":")[0]
     else:
@@ -333,7 +334,7 @@ def construct_ziotype_data(document: etree.ElementBase) -> dict:
         "informatieobjecttype_omschrijving": find(fields, "naam")[:80].strip(),
         "volgnummer": document.get("volgnummer"),
         "richting": get_choice_field(
-            find(fields, "type", False), RichtingChoices.values
+            find(fields, "type", False), RichtingChoices.values, DEFAULT_RICHTING
         ),
         # todo no mapping for non-required fields
         # "statustype": "http://example.com"
