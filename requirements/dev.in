@@ -1,0 +1,18 @@
+# Helpers
+pip-tools
+bumpversion
+
+# Code formatting
+black
+isort
+flake8
+
+# Debug tooling
+django-debug-toolbar
+django-extensions
+
+# Documentation
+sphinx
+sphinx_rtd_theme
+sphinx-tabs
+recommonmark
