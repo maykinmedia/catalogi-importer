@@ -9,8 +9,6 @@ Catalogi Importer
 
 |black|
 
-|python-versions| |django-versions| |pypi-version|
-
 Migrate your Catalogi data from Navigator to Catalogi API
 
 
@@ -21,7 +19,7 @@ Migrate your Catalogi data from Navigator to Catalogi API
 Features
 ========
 
-* import data from iNavigator xml into Catalogi API
+* import data from i-Navigator xml into Catalogi API
 
 Installation
 ============
@@ -55,30 +53,8 @@ Prerequisites
 * URL of target catalog in Catalogi API
 
 
-import_from_file command
-------------------------
-
-- Run django server of the application (the easiest way is to use ``runserver`` command) and access django admin page
-
-  - add credentials for Catalogi API in "Services" admin page
-  - add credentials for Selectielijst API in "Services" admin page
-  - choose the configured in previous step service in "Selectielijst" admin page
-
-- Execute command ``import_from_file`` specifying the path of XML file, the url of target catalog in Catalogi API and the year of procestypen in Selectielijst API
-
-For example:
-
-.. code-block:: bash
-
-    python manage.py import_from_file path/to/file.xml http://some.catalogi.nl/api/v1/catalogussen/e7f987eb-c30f-4a09-832a-9370e9f37631 2020
+TODO
 
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-
-.. |python-versions| image:: https://img.shields.io/pypi/pyversions/importer.svg
-
-.. |django-versions| image:: https://img.shields.io/pypi/djversions/importer.svg
-
-.. |pypi-version| image:: https://img.shields.io/pypi/v/importer.svg
-    :target: https://pypi.org/project/importer/

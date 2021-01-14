@@ -13,7 +13,7 @@ services:
     build: .
     environment:
       - DJANGO_SETTINGS_MODULE=importer.conf.docker
-      - SECRET_KEY=${SECRET_KEY:-rv3JcnxW9bTksXHHUYr8NYdhc2h9PuvnVHccz}
+      - SECRET_KEY=${SECRET_KEY:-vn#(38r7kor^sq9c=w+m13gtrps)wzkt1v7k!#8j%s4lb25u3f}
     ports:
       - 8000:8000
     depends_on:
