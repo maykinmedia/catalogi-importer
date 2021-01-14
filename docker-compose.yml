@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  db:
+    # NOTE: No persistance storage configured.
+    # See: https://hub.docker.com/_/postgres/
+    image: mdillon/postgis
+    environment:
+      - POSTGRES_USER=${DB_USER:-importer}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-importer}
+
+  web:
+    build: .
+    environment:
+      - DJANGO_SETTINGS_MODULE=importer.conf.docker
+      - SECRET_KEY=${SECRET_KEY:-rv3JcnxW9bTksXHHUYr8NYdhc2h9PuvnVHccz}
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+
+# See: src/importer/conf/docker.py
+# Optional containers below:
+#  elasticsearch:
+#    # NOTE: No persistance storage configured.
+#    # See: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
+#    image: docker.elastic.co/elasticsearch/elasticsearch:6.2.4
+#    container_name: elasticsearch
+#    environment:
+#      - discovery.type=single-node
+#      - cluster.routing.allocation.disk.threshold_enabled=false
+#    ports:
+#      - 9200:9200
+#  redis:
+#    # NOTE: No persistance storage configured.
+#    # See: https://hub.docker.com/_/redis/
+#    image: redis
+#    ports:
+#        - 6379:6379
