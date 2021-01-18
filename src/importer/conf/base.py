@@ -71,7 +71,7 @@ INSTALLED_APPS = [
     "zgw_consumers",
     # Project applications.
     "importer.accounts",
-    # "importer.core",
+    "importer.core",
     "importer.utils",
 ]
 
