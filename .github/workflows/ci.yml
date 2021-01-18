@@ -8,9 +8,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  IMAGE_NAME: maykinmedia/catalogi-impoter
-
 jobs:
   tests:
     name: Run the Django test suite

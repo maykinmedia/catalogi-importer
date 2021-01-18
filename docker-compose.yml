@@ -4,7 +4,7 @@ services:
   db:
     # NOTE: No persistance storage configured.
     # See: https://hub.docker.com/_/postgres/
-    image: mdillon/postgis
+    image: postgres
     environment:
       - POSTGRES_USER=${DB_USER:-importer}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-importer}

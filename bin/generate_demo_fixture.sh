@@ -8,4 +8,4 @@
 #
 # Run this script from the root of the repository
 
-src/manage.py dumpdata --indent=4 --natural-foreign --natural-primary core zgw_consumers.service > src/importer/fixtures/demodata.json
+src/manage.py dumpdata --indent=4 --natural-foreign --natural-primary importer.selectielijstconfig > src/importer/fixtures/demodata.json
