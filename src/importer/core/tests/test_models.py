@@ -8,12 +8,7 @@ from importer.core.tests.factories import CatalogConfigFactory, JobFactory
 
 
 class CatalogConfigTests(TestCase):
-    def test_has_credentials(self):
-        catalog = CatalogConfigFactory(url="https://foo/api/catalog")
-        self.assertFalse(catalog.has_credentials())
-
-        Service.objects.create(api_root="https://foo/api/")
-        self.assertTrue(catalog.has_credentials())
+    pass
 
 
 class JobTests(TestCase):
