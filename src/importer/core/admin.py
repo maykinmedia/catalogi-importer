@@ -11,7 +11,7 @@ from solo.admin import SingletonModelAdmin
 from zgw_consumers.models import Service
 
 from .choices import JobState
-from .models import CatalogConfig, Job, SelectielijstConfig
+from .models import CatalogConfig, Job, JobLog, SelectielijstConfig
 
 
 @admin.register(SelectielijstConfig)
@@ -52,6 +52,76 @@ class CatalogConfigAdmin(admin.ModelAdmin):
         return request.user.is_superuser
 
 
+@admin.register(JobLog)
+class JobLogAdmin(admin.ModelAdmin):
+    fields = [
+        "job",
+        "level",
+        "timestamp",
+        "message",
+    ]
+    readonly_fields = [
+        "timestamp",
+    ]
+    list_display = [
+        "timestamp",
+        "job",
+        "level",
+        "message_trim_line",
+    ]
+    raw_id_fields = [
+        "job",
+    ]
+    list_filter = [
+        "level",
+    ]
+    date_hierarchy = "timestamp"
+    ordering = [
+        "-timestamp",
+    ]
+    search_fields = [
+        "message",
+        "job__id",
+    ]
+
+    # TODO setup permissions
+    # def has_add_permission(self, request, obj=None):
+    #     return False
+    #
+    # def has_change_permission(self, request, obj=None):
+    #     return False
+    #
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+class JobLogInline(admin.TabularInline):
+    template = "admin/core/job/joblog_tabular.html"
+    model = JobLog
+    fields = [
+        "timestamp",
+        "level",
+        "message",
+    ]
+    readonly_fields = [
+        "level",
+        "timestamp",
+        "message",
+    ]
+    ordering = [
+        "-timestamp",
+    ]
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 class StaticHiddenField(forms.Field):
     def __init__(self, value):
         self.value = value
@@ -83,8 +153,8 @@ class JobAdmin(admin.ModelAdmin):
         "stopped_at",
     ]
     list_filter = [
-        "catalog",
         "state",
+        "catalog",
         "year",
     ]
     date_hierarchy = "created_at"
@@ -152,6 +222,7 @@ class JobAdmin(admin.ModelAdmin):
             return fields
 
     def get_precheck_stats(self):
+        # TODO implement
         return [
             ("Status", "OK"),
             ("IOTypen", "43"),
@@ -163,6 +234,7 @@ class JobAdmin(admin.ModelAdmin):
         ]
 
     def get_progress_stats(self):
+        # TODO implement
         return [
             ("IOTypen", "12 / 43"),
             ("Zaaktypen", "23 / 32"),
@@ -173,6 +245,7 @@ class JobAdmin(admin.ModelAdmin):
         ]
 
     def get_completion_stats(self):
+        # TODO implement
         return [
             ("Status", "OK"),
             ("IOTypen", "43"),
@@ -183,11 +256,18 @@ class JobAdmin(admin.ModelAdmin):
             ("Zaakinformatieobjecttypen", "23"),
         ]
 
+    def get_joblogs(self, job):
+        return {
+            "rows": job.joblog_set.order_by("-timestamp"),
+        }
+
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
         job = Job.objects.get(id=object_id)
+
         if job.state == JobState.precheck:
-            extra_context["title"] = ""
+            # TODO swap for precheck logs
+            extra_context["joblog_table"] = self.get_joblogs(job)
             extra_context["value_table"] = {
                 "title": _("Precheck results"),
                 "rows": self.get_precheck_stats(),
@@ -197,11 +277,13 @@ class JobAdmin(admin.ModelAdmin):
                 "title": _("Progress"),
                 "rows": self.get_progress_stats(),
             }
-        elif job.state == JobState.completed:
+        elif job.state in JobState.completed:
+            extra_context["joblog_table"] = self.get_joblogs(job)
             extra_context["value_table"] = {
                 "title": _("Results"),
                 "rows": self.get_completion_stats(),
             }
+
         return super().change_view(
             request, object_id, form_url, extra_context=extra_context
         )
@@ -211,6 +293,14 @@ class JobAdmin(admin.ModelAdmin):
             return JobStateQueueForm
         else:
             return super().get_form(request, obj=obj, change=change, **kwargs)
+
+    def has_delete_permission(self, request, obj=None):
+        # TODO allow deletion for cleanup of failed prechecks?
+        return False  # request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        # precheck is the only state that needs user interaction to continue
+        return obj and obj.state == JobState.precheck
 
     def year_fmt(self, job):
         return str(job.year)
@@ -232,6 +322,7 @@ class JobAdmin(admin.ModelAdmin):
         )
 
     catalog_fmt.short_description = _("Catalogus")
+    catalog_fmt.admin_order_field = "catalog"
 
     def source_fmt(self, job):
         url = reverse("staff_private_file", kwargs={"path": job.source.name})
@@ -242,11 +333,3 @@ class JobAdmin(admin.ModelAdmin):
         )
 
     source_fmt.short_description = _("XML File")
-
-    def has_delete_permission(self, request, obj=None):
-        # TODO allow deletion for cleanup of failed prechecks?
-        return False  # request.user.is_superuser
-
-    def has_change_permission(self, request, obj=None):
-        # precheck is the only state that needs user interaction to continue
-        return obj and obj.state == JobState.precheck

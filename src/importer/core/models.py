@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from solo.models import SingletonModel
 from zgw_consumers.constants import APITypes
 
-from importer.core.choices import JobState
+from importer.core.choices import JobLogLevel, JobState
 from importer.utils.storage import private_storage
 
 
@@ -127,3 +127,31 @@ class Job(models.Model):
         self.state = JobState.error
         self.stopped_at = timezone.now()
         self.save()
+
+
+class JobLog(models.Model):
+    job = models.ForeignKey(
+        "core.Job",
+        on_delete=models.CASCADE,
+    )
+
+    # TODO we dont need this
+    timestamp = models.DateTimeField(_("Time"), auto_now_add=True, db_index=True)
+
+    level = models.CharField(
+        _("Level"),
+        max_length=32,
+        default=JobLogLevel.info,
+        choices=JobLogLevel.choices,
+        db_index=True,
+    )
+
+    message = models.TextField(_("Message"), default="")
+
+    # TODO we probably want to register more fields, like the sub catalog, object uri etc
+
+    def message_trim_line(self):
+        return self.message.splitlines()[0][:32]
+
+    message_trim_line.short_description = _("Message")
+    message_trim_line.admin_order_field = "message"
