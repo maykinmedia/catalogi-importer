@@ -7,6 +7,7 @@ from zgw_consumers.models import Service
 
 from importer.accounts.tests.factories import StaffUserFactory, UserFactory
 from importer.core.admin import CatalogConfigAdmin
+from importer.core.choices import JobState
 from importer.core.models import CatalogConfig, Job
 from importer.core.tests.base import AdminWebTest
 from importer.core.tests.factories import (
@@ -14,6 +15,7 @@ from importer.core.tests.factories import (
     CompletedJobFactory,
     ErrorJobFactory,
     JobFactory,
+    QueuedJobFactory,
     RunningJobFactory,
 )
 
@@ -60,6 +62,7 @@ class JobAdminViewTest(AdminWebTest):
         job = Job.objects.get()
         self.assertEqual(job.year, 2021)
         self.assertEqual(job.catalog, catalog)
+        self.assertEqual(job.state, JobState.precheck)
         job.source.open("rb")
         content = job.source.read()
         self.assertEqual(content, b"data")
@@ -72,23 +75,49 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(url, status=200)
         self.assertEqual(response.body, b"data")
 
-    def assertJobReadonlyFields(self, response):
+    def assertSubmitButtonExists(self, response):
+        self.assertPyQueryExists(response, "input[type='submit']")
+
+    def assertSubmitButtonNotExists(self, response):
         self.assertPyQueryNotExists(response, "input[type='submit']")
+
+    def assertJobCommonReadonlyFields(self, response, allow_fields=None):
         form = response.form
-        self.assertEqual(set(form.fields.keys()), {"csrfmiddlewaretoken"})
+        expect_fields = {"csrfmiddlewaretoken"}
+        if allow_fields:
+            expect_fields |= set(allow_fields)
+
+        self.assertEqual(set(form.fields.keys()), expect_fields)
 
         self.assertRowExistsReadonly(response, "catalog_fmt")
         self.assertRowExistsReadonly(response, "year_fmt")
         self.assertRowExistsReadonly(response, "source_fmt")
-        self.assertRowExistsReadonly(response, "state")
         self.assertRowExistsReadonly(response, "created_at")
 
-    def test_change_queued(self):
+    def test_change_precheck(self):
         job = JobFactory()
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
-        self.assertJobReadonlyFields(response)
+        self.assertSubmitButtonExists(response)
+        self.assertJobCommonReadonlyFields(
+            response, allow_fields=["state", "_continue"]
+        )
+        self.assertRowNotExists(response, "started_at")
+        self.assertRowNotExists(response, "stopped_at")
+
+        # TODO verify content
+        self.assertPyQueryExists(response, ".value-display h1")
+        self.assertPyQueryExists(response, ".value-display-table .form-row")
+
+    def test_change_queued(self):
+        job = QueuedJobFactory()
+        response = self.app.get(self.reverse_change_url(job))
+
+        # readonly mode
+        self.assertSubmitButtonNotExists(response)
+        self.assertJobCommonReadonlyFields(response)
+        self.assertRowExistsReadonly(response, "state")
         self.assertRowNotExists(response, "started_at")
         self.assertRowNotExists(response, "stopped_at")
 
@@ -97,16 +126,24 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
-        self.assertJobReadonlyFields(response)
+        self.assertSubmitButtonNotExists(response)
+        self.assertJobCommonReadonlyFields(response)
+        self.assertRowExistsReadonly(response, "state")
         self.assertRowExistsReadonly(response, "started_at")
         self.assertRowNotExists(response, "stopped_at")
+
+        # TODO verify content
+        self.assertPyQueryExists(response, ".value-display h1")
+        self.assertPyQueryExists(response, ".value-display-table .form-row")
 
     def test_change_completed(self):
         job = CompletedJobFactory()
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
-        self.assertJobReadonlyFields(response)
+        self.assertSubmitButtonNotExists(response)
+        self.assertJobCommonReadonlyFields(response)
+        self.assertRowExistsReadonly(response, "state")
         self.assertRowExistsReadonly(response, "started_at")
         self.assertRowExistsReadonly(response, "stopped_at")
 
@@ -115,7 +152,9 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
-        self.assertJobReadonlyFields(response)
+        self.assertSubmitButtonNotExists(response)
+        self.assertJobCommonReadonlyFields(response)
+        self.assertRowExistsReadonly(response, "state")
         self.assertRowExistsReadonly(response, "started_at")
         self.assertRowExistsReadonly(response, "stopped_at")
 

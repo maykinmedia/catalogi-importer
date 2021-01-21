@@ -10,6 +10,7 @@ class JobTests(TestCase):
         job_queued_1 = JobFactory(state=JobState.queued)
         job_queued_2 = JobFactory(state=JobState.queued)
 
+        JobFactory(state=JobState.precheck)
         JobFactory(state=JobState.running)
         JobFactory(state=JobState.completed)
         JobFactory(state=JobState.error)
@@ -19,10 +20,13 @@ class JobTests(TestCase):
 
     def test_state_change(self):
         job = JobFactory()
-        self.assertEqual(job.state, JobState.queued)
+        self.assertEqual(job.state, JobState.precheck)
         self.assertIsNotNone(job.created_at)
         self.assertIsNone(job.started_at)
         self.assertIsNone(job.stopped_at)
+
+        job.state = JobState.queued
+        job.save()
 
         job.mark_running()
         self.assertEqual(job.state, JobState.running)

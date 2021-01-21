@@ -20,7 +20,7 @@ class JobFactory(factory.django.DjangoModelFactory):
     catalog = factory.SubFactory(CatalogConfigFactory)
     source = factory.Faker("file_name", category="text", extension="xml")
     year = factory.Faker("year")
-    state = JobState.queued
+    state = JobState.precheck
 
     created_at = factory.Faker(
         "date_time_between", start_date="-1d", end_date="-1h", tzinfo=pytz.utc
@@ -28,6 +28,10 @@ class JobFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Job
+
+
+class QueuedJobFactory(JobFactory):
+    state = JobState.queued
 
 
 class RunningJobFactory(JobFactory):

@@ -52,6 +52,26 @@ class CatalogConfigAdmin(admin.ModelAdmin):
         return request.user.is_superuser
 
 
+class StaticHiddenField(forms.Field):
+    def __init__(self, value):
+        self.value = value
+        super().__init__(widget=forms.HiddenInput)
+
+    def prepare_value(self, value):
+        return self.value
+
+    def to_python(self, value):
+        return self.value
+
+
+class JobStateQueueForm(forms.ModelForm):
+    state = StaticHiddenField(JobState.queued)
+
+    class Meta:
+        model = Job
+        fields = ["state"]
+
+
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
     list_display = [
@@ -102,6 +122,14 @@ class JobAdmin(admin.ModelAdmin):
                 "started_at",
                 "stopped_at",
             ]
+        elif job.state == JobState.precheck:
+            return [
+                # "catalog_fmt",
+                # "year_fmt",
+                # "source_fmt",
+                "state",
+                # "created_at",
+            ]
         else:
             return fields
 
@@ -116,8 +144,73 @@ class JobAdmin(admin.ModelAdmin):
                 "year",
                 "source",
             }
+        elif job.state == JobState.precheck:
+            return set(fields) - {
+                "state",
+            }
         else:
             return fields
+
+    def get_precheck_stats(self):
+        return [
+            ("Status", "OK"),
+            ("IOTypen", "43"),
+            ("Zaaktypen", "32"),
+            ("Roltypen", "21 (7 warnings)"),
+            ("Statustypes", "17"),
+            ("Resultaattypen", "34"),
+            ("Zaakinformatieobjecttypen", "23"),
+        ]
+
+    def get_progress_stats(self):
+        return [
+            ("IOTypen", "12 / 43"),
+            ("Zaaktypen", "23 / 32"),
+            ("Roltypen", "12 / 21 (7 warnings)"),
+            ("Statustypes", "7 / 17"),
+            ("Resultaattypen", "15 / 34"),
+            ("Zaakinformatieobjecttypen", "23 / 23"),
+        ]
+
+    def get_completion_stats(self):
+        return [
+            ("Status", "OK"),
+            ("IOTypen", "43"),
+            ("Zaaktypen", "32"),
+            ("Roltypen", "21 (7 warnings)"),
+            ("Statustypes", "17"),
+            ("Resultaattypen", "34"),
+            ("Zaakinformatieobjecttypen", "23"),
+        ]
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        job = Job.objects.get(id=object_id)
+        if job.state == JobState.precheck:
+            extra_context["title"] = ""
+            extra_context["value_table"] = {
+                "title": _("Precheck results"),
+                "rows": self.get_precheck_stats(),
+            }
+        elif job.state == JobState.running:
+            extra_context["value_table"] = {
+                "title": _("Progress"),
+                "rows": self.get_progress_stats(),
+            }
+        elif job.state == JobState.completed:
+            extra_context["value_table"] = {
+                "title": _("Results"),
+                "rows": self.get_completion_stats(),
+            }
+        return super().change_view(
+            request, object_id, form_url, extra_context=extra_context
+        )
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        if obj and obj.state == JobState.precheck:
+            return JobStateQueueForm
+        else:
+            return super().get_form(request, obj=obj, change=change, **kwargs)
 
     def year_fmt(self, job):
         return str(job.year)
@@ -151,7 +244,9 @@ class JobAdmin(admin.ModelAdmin):
     source_fmt.short_description = _("XML File")
 
     def has_delete_permission(self, request, obj=None):
-        return request.user.is_superuser
+        # TODO allow deletion for cleanup of failed prechecks?
+        return False  # request.user.is_superuser
 
     def has_change_permission(self, request, obj=None):
-        return False
+        # precheck is the only state that needs user interaction to continue
+        return obj and obj.state == JobState.precheck

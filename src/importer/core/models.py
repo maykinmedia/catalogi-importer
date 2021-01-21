@@ -91,7 +91,7 @@ class Job(models.Model):
     state = models.CharField(
         _("State"),
         max_length=32,
-        default=JobState.queued,
+        default=JobState.precheck,
         choices=JobState.choices,
         db_index=True,
     )
