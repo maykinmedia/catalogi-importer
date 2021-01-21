@@ -1,3 +1,5 @@
+import os
+
 from django import forms
 from django.contrib import admin
 from django.db import models
@@ -69,23 +71,25 @@ class JobAdmin(admin.ModelAdmin):
     ordering = [
         "-created_at",
     ]
-
     formfield_overrides = {
         models.SmallIntegerField: {"widget": forms.TextInput},
     }
 
     def get_fields(self, request, job=None):
+        """
+        everything readonly except on creation, see also get_readonly_fields()
+        """
         if not job:
             return [
                 "catalog",
                 "year",
                 "source",
             ]
-        # readonly mode
+        # readonly mode, adding fields as state flow progresses
         fields = [
             "catalog_fmt",
             "year_fmt",
-            "source",
+            "source_fmt",
             "state",
             "created_at",
         ]
@@ -102,6 +106,9 @@ class JobAdmin(admin.ModelAdmin):
             return fields
 
     def get_readonly_fields(self, request, job=None):
+        """
+        everything readonly except on creation
+        """
         fields = self.get_fields(request, job=job)
         if not job:
             return set(fields) - {
@@ -132,6 +139,16 @@ class JobAdmin(admin.ModelAdmin):
         )
 
     catalog_fmt.short_description = _("Catalogus")
+
+    def source_fmt(self, job):
+        url = reverse("staff_private_file", kwargs={"path": job.source.name})
+        return format_html(
+            '<a href="{url}" target="_blank">{text}</a>',
+            url=url,
+            text=os.path.basename(job.source.name),
+        )
+
+    source_fmt.short_description = _("XML File")
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser

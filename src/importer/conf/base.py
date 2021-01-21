@@ -183,6 +183,10 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 PRIVATE_MEDIA_ROOT = os.path.join(BASE_DIR, "private_media")
 PRIVATE_MEDIA_URL = "/private_files"
 
+SENDFILE_BACKEND = "sendfile.backends.nginx"
+SENDFILE_ROOT = PRIVATE_MEDIA_ROOT
+SENDFILE_URL = "/private_media"
+
 FIXTURE_DIRS = (os.path.join(DJANGO_PROJECT_DIR, "fixtures"),)
 
 DEFAULT_FROM_EMAIL = "importer@example.com"

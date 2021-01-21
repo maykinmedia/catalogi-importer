@@ -4,8 +4,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.generic.base import TemplateView
+
+from importer.core.views import StaffPrivateFileView
 
 handler500 = "importer.utils.views.server_error"
 admin.site.site_header = "importer admin"
@@ -34,6 +36,11 @@ urlpatterns = [
         "reset/done/",
         auth_views.PasswordResetCompleteView.as_view(),
         name="password_reset_complete",
+    ),
+    re_path(
+        r"^private_files/(?P<path>.*)$",
+        StaffPrivateFileView.as_view(),
+        name="staff_private_file",
     ),
     # Simply show the master template.
     path("", TemplateView.as_view(template_name="index.html")),
