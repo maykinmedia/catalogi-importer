@@ -1,14 +1,8 @@
 from django.test import TestCase
 
-from zgw_consumers.models import Service
-
 from importer.core.choices import JobState
 from importer.core.models import Job
-from importer.core.tests.factories import CatalogConfigFactory, JobFactory
-
-
-class CatalogConfigTests(TestCase):
-    pass
+from importer.core.tests.factories import JobFactory
 
 
 class JobTests(TestCase):

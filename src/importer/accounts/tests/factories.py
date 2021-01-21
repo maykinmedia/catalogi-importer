@@ -6,3 +6,11 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = "accounts.User"
+
+
+class StaffUserFactory(UserFactory):
+    is_staff = True
+
+
+class SuperUserFactory(StaffUserFactory):
+    is_superuser = True

@@ -1,10 +1,12 @@
 from django import forms
 from django.contrib import admin
 from django.db import models
+from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from solo.admin import SingletonModelAdmin
+from zgw_consumers.models import Service
 
 from .choices import JobState
 from .models import CatalogConfig, Job, SelectielijstConfig
@@ -20,7 +22,6 @@ class CatalogConfigAdmin(admin.ModelAdmin):
     fields = [
         "url",
         "label",
-        "has_credentials",
     ]
     list_display = [
         "__str__",
@@ -30,12 +31,19 @@ class CatalogConfigAdmin(admin.ModelAdmin):
         "has_credentials",
     ]
 
-    def has_credentials(self, catalog):
-        from zgw_consumers.models import Service
+    def get_fields(self, request, catalog=None):
+        fields = super().get_fields(request, catalog)
+        if not catalog:
+            return fields
+        else:
+            return fields + [
+                "has_credentials",
+            ]
 
+    def has_credentials(self, catalog):
         return Service.get_service(catalog.url) is not None
 
-    has_credentials.short_description = _("ZGW Service defined")
+    has_credentials.short_description = _("ZGW Service configured")
     has_credentials.boolean = True
 
     def has_delete_permission(self, request, obj=None):
@@ -59,7 +67,7 @@ class JobAdmin(admin.ModelAdmin):
     ]
     date_hierarchy = "created_at"
     ordering = [
-        "created_at",
+        "-created_at",
     ]
 
     formfield_overrides = {
@@ -67,45 +75,35 @@ class JobAdmin(admin.ModelAdmin):
     }
 
     def get_fields(self, request, job=None):
-        if not job or job.id is None:
+        if not job:
             return [
                 "catalog",
                 "year",
                 "source",
             ]
-        # readonly modes
+        # readonly mode
         fields = [
             "catalog_fmt",
             "year_fmt",
             "source",
+            "state",
+            "created_at",
         ]
-        if job.state == JobState.queued:
+        if job.state == JobState.running:
             return fields + [
-                "state",
-                "created_at",
-            ]
-        elif job.state == JobState.running:
-            return fields + [
-                "state",
-                "created_at",
                 "started_at",
             ]
         elif job.state in (JobState.completed, JobState.error):
             return fields + [
-                "state",
-                "created_at",
                 "started_at",
-                "complete_at",
+                "stopped_at",
             ]
         else:
-            return fields + [
-                "state",
-            ]
+            return fields
 
     def get_readonly_fields(self, request, job=None):
         fields = self.get_fields(request, job=job)
-        if not job or job.id is None:
-            # explicitly allow when creating new
+        if not job:
             return set(fields) - {
                 "catalog",
                 "year",
@@ -114,20 +112,24 @@ class JobAdmin(admin.ModelAdmin):
         else:
             return fields
 
-    def year_fmt(self, instance):
-        return str(instance.year)
+    def year_fmt(self, job):
+        return str(job.year)
 
     year_fmt.short_description = _("Selectielijst year")
     year_fmt.admin_order_field = "year"
 
-    def catalog_fmt(self, instance):
-        if instance.catalog.label:
-            return format_html(
-                '{label} (<a href="{url}" target="_blank" rel="noopener, noreferrer">{url}</a>)',
-                label=instance.catalog.label,
-                url=instance.catalog.url,
-            )
-        return str(instance.catalog.label)
+    def catalog_fmt(self, job):
+        url = reverse(
+            "admin:{}_{}_change".format(
+                job.catalog._meta.app_label, job.catalog._meta.model_name
+            ),
+            args=[job.catalog.pk],
+        )
+        return format_html(
+            '<a href="{url}">{text}</a>',
+            url=url,
+            text=str(job.catalog),
+        )
 
     catalog_fmt.short_description = _("Catalogus")
 

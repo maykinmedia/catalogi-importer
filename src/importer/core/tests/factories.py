@@ -1,3 +1,6 @@
+from datetime import timedelta
+from random import randint
+
 import factory
 import pytz
 
@@ -19,7 +22,27 @@ class JobFactory(factory.django.DjangoModelFactory):
     year = factory.Faker("year")
     state = JobState.queued
 
-    created_at = factory.Faker("past_datetime", tzinfo=pytz.utc)
+    created_at = factory.Faker(
+        "date_time_between", start_date="-1d", end_date="-1h", tzinfo=pytz.utc
+    )
 
     class Meta:
         model = Job
+
+
+class RunningJobFactory(JobFactory):
+    state = JobState.running
+    started_at = factory.LazyAttribute(
+        lambda obj: obj.created_at + timedelta(minutes=randint(1, 15))
+    )
+
+
+class CompletedJobFactory(RunningJobFactory):
+    state = JobState.completed
+    stopped_at = factory.LazyAttribute(
+        lambda obj: obj.started_at + timedelta(minutes=randint(1, 15))
+    )
+
+
+class ErrorJobFactory(CompletedJobFactory):
+    state = JobState.error
