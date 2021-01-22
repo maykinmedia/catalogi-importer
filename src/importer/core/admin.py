@@ -13,8 +13,10 @@ from faker import Faker
 from solo.admin import SingletonModelAdmin
 from zgw_consumers.models import Service
 
-from .choices import JobLogLevel, JobState
-from .models import CatalogConfig, Job, JobLog, SelectielijstConfig
+from importer.core.choices import JobLogLevel, JobState
+from importer.core.models import CatalogConfig, Job, JobLog, SelectielijstConfig
+from importer.core.tasks import import_job_task
+from importer.utils.forms import StaticHiddenField
 
 
 @admin.register(SelectielijstConfig)
@@ -123,18 +125,6 @@ class JobLogInline(admin.TabularInline):
 
     def has_delete_permission(self, request, obj=None):
         return False
-
-
-class StaticHiddenField(forms.Field):
-    def __init__(self, value):
-        self.value = value
-        super().__init__(widget=forms.HiddenInput)
-
-    def prepare_value(self, value):
-        return self.value
-
-    def to_python(self, value):
-        return self.value
 
 
 class JobStateQueueForm(forms.ModelForm):
@@ -256,6 +246,7 @@ class JobAdmin(admin.ModelAdmin):
         ]
 
     def get_precheck_joblogs(self, job):
+        # TODO implement
         f = Faker()
         return {
             "rows": [
@@ -277,25 +268,31 @@ class JobAdmin(admin.ModelAdmin):
         extra_context = extra_context or {}
         job = Job.objects.get(id=object_id)
 
+        extra_context["title"] = "Job"
+
         if job.state == JobState.precheck:
             # TODO swap for precheck logs
+            extra_context["title"] = _("Precheck")
             extra_context["joblog_table"] = self.get_precheck_joblogs(job)
             extra_context["value_table"] = {
-                "title": _("Precheck results"),
                 "rows": self.get_precheck_stats(),
             }
+        elif job.state == JobState.queued:
+            extra_context["title"] = _("Queued Job")
         elif job.state == JobState.running:
+            extra_context["title"] = _("Running..")
             extra_context["value_table"] = {
-                "title": _("Progress"),
                 "rows": self.get_running_stats(),
             }
         elif job.state in JobState.completed:
+            extra_context["title"] = _("Import completed")
             extra_context["joblog_table"] = self.get_stopped_joblogs(job)
             extra_context["value_table"] = {
                 "title": _("Results"),
                 "rows": self.get_completed_stats(),
             }
         elif job.state in JobState.error:
+            extra_context["title"] = _("Error")
             extra_context["joblog_table"] = self.get_stopped_joblogs(job)
             extra_context["value_table"] = {
                 "title": _("Error"),
@@ -312,6 +309,15 @@ class JobAdmin(admin.ModelAdmin):
         else:
             return super().get_form(request, obj=obj, change=change, **kwargs)
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if change and obj.state == JobState.queued:
+            import_job_task.delay(obj.id)
+
+    def message_user(self, *args):
+        # kill automatic messages
+        pass
+
     def has_delete_permission(self, request, obj=None):
         # TODO allow deletion for cleanup of failed prechecks?
         return False  # request.user.is_superuser
@@ -319,6 +325,9 @@ class JobAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         # precheck is the only state that needs user interaction to continue
         return obj and obj.state == JobState.precheck
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("catalog")
 
     def year_fmt(self, job):
         return str(job.year)

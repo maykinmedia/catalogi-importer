@@ -18,6 +18,13 @@ services:
       - 8000:8000
     depends_on:
       - db
+      -
+  redis:
+    # NOTE: No persistance storage configured.
+    # See: https://hub.docker.com/_/redis/
+    image: redis
+    ports:
+      - 6379:6379
 
 # See: src/importer/conf/docker.py
 # Optional containers below:
@@ -31,9 +38,3 @@ services:
 #      - cluster.routing.allocation.disk.threshold_enabled=false
 #    ports:
 #      - 9200:9200
-#  redis:
-#    # NOTE: No persistance storage configured.
-#    # See: https://hub.docker.com/_/redis/
-#    image: redis
-#    ports:
-#        - 6379:6379

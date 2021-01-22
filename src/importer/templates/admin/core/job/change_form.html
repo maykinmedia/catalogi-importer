@@ -29,9 +29,15 @@
     {{ block.super }}
     {% if original.state == 'running' %}
     <script type="text/javascript">
-        setInterval(function() {
+        setTimeout(function() {
             window.location.reload();
         }, 5000);
+    </script>
+    {% elif original.state == 'queued' %}
+    <script type="text/javascript">
+        setTimeout(function() {
+            window.location.reload();
+        }, 1000);
     </script>
     {% endif %}
 {% endblock %}
