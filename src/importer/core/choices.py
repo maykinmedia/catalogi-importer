@@ -17,3 +17,14 @@ class JobLogLevel(DjangoChoices):
     info = ChoiceItem("info", _("Info"))
     warning = ChoiceItem("warning", _("Warning"))
     error = ChoiceItem("error", _("Error"))
+
+    ICONS = {
+        "info": "ℹ",
+        "warning": "⚠️️",
+        "error": "❌",
+        "default": "❓",
+    }
+
+    @classmethod
+    def get_icon(cls, level):
+        return cls.ICONS.get(level) or cls.ICONS["default"]

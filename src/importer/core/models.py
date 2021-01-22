@@ -155,3 +155,9 @@ class JobLog(models.Model):
 
     message_trim_line.short_description = _("Message")
     message_trim_line.admin_order_field = "message"
+
+    def get_level_icon(self):
+        return JobLogLevel.get_icon(self.level)
+
+    get_level_icon.short_description = _("Level")
+    get_level_icon.admin_order_field = "level"

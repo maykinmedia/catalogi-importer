@@ -1,37 +1,45 @@
 {% load i18n admin_urls static admin_modify %}
 {% if joblog_table %}
-<div class="inline-group">
-    <div class="tabular inline-related last-related">
-        <fieldset class="module ">
-            <h2>Job logs</h2>
-            <table>
-                <thead>
-                <tr>
-                    <th class="column-timestamp">Time</th>
-                    <th class="column-level">Level</th>
-                    <th class="column-message">Message</th>
-                </tr>
-                </thead>
+    <div class="inline-group">
+        <div class="tabular inline-related last-related">
+            <fieldset class="module ">
+                <h2>Job logs</h2>
 
-                <tbody>
-                {% for log in joblog_table.rows %}
-                <tr class="form-row {% cycle "row1" "row2" %} level-{{ log.level }}">
-                    <td class="field-timestamp" style="width: 10%;">
-                        <p>{{ log.timestamp }}</p>
-                    </td>
-                    <td class="field-level" style="width: 10%;">
-                        <p>{{ log.get_level_display }}</p>
-                    </td>
-                    <td class="field-message">
-                        <p>{{ log.message|linebreaks }}</p>
-                    </td>
-                </tr>
-                {% empty %}
-                    <li>{% trans "No logs" %}</li>
-                {% endfor %}
-                </tbody>
-            </table>
-        </fieldset>
+                {% if joblog_table.rows %}
+                    <table>
+                        <thead>
+                        <tr>
+                            <th class="column-timestamp">Time</th>
+                            <th class="column-icon"></th>
+                            <th class="column-level">Level</th>
+                            <th class="column-message">Message</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for log in joblog_table.rows %}
+                            <tr class="form-row {% cycle "row1" "row2" %} level-{{ log.level }}">
+                                <td class="field-timestamp" style="width: 9em;">
+                                    <p style="white-space: nowrap;">{{ log.timestamp }}</p>
+                                </td>
+                                <td class="field-icon" style="width: 2em; text-align: center;">
+                                    <p><span style="font-size:120%;">{{ log.get_level_icon }}</span></p>
+                                </td>
+                                <td class="field-level" style="width: 6em;">
+{#                                    <div style="font-size:120%; line-height: 1em; width: 2em; display: inline-block; text-align: center;">{{ log.get_level_icon }}</div>#}
+
+                                    <p>{{ log.get_level_display }}</p>
+                                </td>
+                                <td class="field-message">
+                                    {{ log.message|linebreaks }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>{% trans "No logs" %}</p>
+                {% endif %}
+            </fieldset>
+        </div>
     </div>
-</div>
 {% endif %}

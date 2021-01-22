@@ -1,16 +1,19 @@
 import os
+import random
 
 from django import forms
 from django.contrib import admin
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from faker import Faker
 from solo.admin import SingletonModelAdmin
 from zgw_consumers.models import Service
 
-from .choices import JobState
+from .choices import JobLogLevel, JobState
 from .models import CatalogConfig, Job, JobLog, SelectielijstConfig
 
 
@@ -194,11 +197,7 @@ class JobAdmin(admin.ModelAdmin):
             ]
         elif job.state == JobState.precheck:
             return [
-                # "catalog_fmt",
-                # "year_fmt",
-                # "source_fmt",
                 "state",
-                # "created_at",
             ]
         else:
             return fields
@@ -233,7 +232,7 @@ class JobAdmin(admin.ModelAdmin):
             ("Zaakinformatieobjecttypen", "23"),
         ]
 
-    def get_progress_stats(self):
+    def get_running_stats(self):
         # TODO implement
         return [
             ("IOTypen", "12 / 43"),
@@ -244,7 +243,7 @@ class JobAdmin(admin.ModelAdmin):
             ("Zaakinformatieobjecttypen", "23 / 23"),
         ]
 
-    def get_completion_stats(self):
+    def get_completed_stats(self):
         # TODO implement
         return [
             ("Status", "OK"),
@@ -256,7 +255,20 @@ class JobAdmin(admin.ModelAdmin):
             ("Zaakinformatieobjecttypen", "23"),
         ]
 
-    def get_joblogs(self, job):
+    def get_precheck_joblogs(self, job):
+        f = Faker()
+        return {
+            "rows": [
+                JobLog(
+                    level=random.choice(list(JobLogLevel.values.keys())),
+                    message=f.paragraph(),
+                    timestamp=timezone.now(),
+                )
+                for i in range(0, random.randint(2, 20))
+            ],
+        }
+
+    def get_stopped_joblogs(self, job):
         return {
             "rows": job.joblog_set.order_by("-timestamp"),
         }
@@ -267,7 +279,7 @@ class JobAdmin(admin.ModelAdmin):
 
         if job.state == JobState.precheck:
             # TODO swap for precheck logs
-            extra_context["joblog_table"] = self.get_joblogs(job)
+            extra_context["joblog_table"] = self.get_precheck_joblogs(job)
             extra_context["value_table"] = {
                 "title": _("Precheck results"),
                 "rows": self.get_precheck_stats(),
@@ -275,13 +287,19 @@ class JobAdmin(admin.ModelAdmin):
         elif job.state == JobState.running:
             extra_context["value_table"] = {
                 "title": _("Progress"),
-                "rows": self.get_progress_stats(),
+                "rows": self.get_running_stats(),
             }
         elif job.state in JobState.completed:
-            extra_context["joblog_table"] = self.get_joblogs(job)
+            extra_context["joblog_table"] = self.get_stopped_joblogs(job)
             extra_context["value_table"] = {
                 "title": _("Results"),
-                "rows": self.get_completion_stats(),
+                "rows": self.get_completed_stats(),
+            }
+        elif job.state in JobState.error:
+            extra_context["joblog_table"] = self.get_stopped_joblogs(job)
+            extra_context["value_table"] = {
+                "title": _("Error"),
+                "rows": self.get_completed_stats(),
             }
 
         return super().change_view(
