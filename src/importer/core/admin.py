@@ -14,6 +14,7 @@ from solo.admin import SingletonModelAdmin
 from zgw_consumers.models import Service
 
 from importer.core.choices import JobLogLevel, JobState
+from importer.core.constants import ObjectTypenKeys
 from importer.core.models import CatalogConfig, Job, JobLog, SelectielijstConfig
 from importer.core.tasks import import_job_task
 from importer.utils.forms import StaticHiddenField
@@ -89,34 +90,6 @@ class JobLogAdmin(admin.ModelAdmin):
         "job__id",
     ]
 
-    # TODO setup permissions
-    # def has_add_permission(self, request, obj=None):
-    #     return False
-    #
-    # def has_change_permission(self, request, obj=None):
-    #     return False
-    #
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
-
-
-class JobLogInline(admin.TabularInline):
-    template = "admin/core/job/joblog_tabular.html"
-    model = JobLog
-    fields = [
-        "timestamp",
-        "level",
-        "message",
-    ]
-    readonly_fields = [
-        "level",
-        "timestamp",
-        "message",
-    ]
-    ordering = [
-        "-timestamp",
-    ]
-
     def has_add_permission(self, request, obj=None):
         return False
 
@@ -144,6 +117,7 @@ class JobAdmin(admin.ModelAdmin):
         "state",
         "started_at",
         "stopped_at",
+        "get_duration_display",
     ]
     list_filter = [
         "state",
@@ -160,7 +134,7 @@ class JobAdmin(admin.ModelAdmin):
 
     def get_fields(self, request, job=None):
         """
-        everything readonly except on creation, see also get_readonly_fields()
+        everything readonly except on creation or precheck, see also get_readonly_fields()
         """
         if not job:
             return [
@@ -194,7 +168,7 @@ class JobAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, job=None):
         """
-        everything readonly except on creation
+        everything readonly except on creation or precheck
         """
         fields = self.get_fields(request, job=job)
         if not job:
@@ -210,30 +184,7 @@ class JobAdmin(admin.ModelAdmin):
         else:
             return fields
 
-    def get_precheck_stats(self):
-        # TODO implement
-        return [
-            ("Status", "OK"),
-            ("IOTypen", "43"),
-            ("Zaaktypen", "32"),
-            ("Roltypen", "21 (7 warnings)"),
-            ("Statustypes", "17"),
-            ("Resultaattypen", "34"),
-            ("Zaakinformatieobjecttypen", "23"),
-        ]
-
-    def get_running_stats(self):
-        # TODO implement
-        return [
-            ("IOTypen", "12 / 43"),
-            ("Zaaktypen", "23 / 32"),
-            ("Roltypen", "12 / 21 (7 warnings)"),
-            ("Statustypes", "7 / 17"),
-            ("Resultaattypen", "15 / 34"),
-            ("Zaakinformatieobjecttypen", "23 / 23"),
-        ]
-
-    def get_completed_stats(self):
+    def get_precheck_stats(self, job):
         # TODO implement
         return [
             ("Status", "OK"),
@@ -248,55 +199,61 @@ class JobAdmin(admin.ModelAdmin):
     def get_precheck_joblogs(self, job):
         # TODO implement
         f = Faker()
-        return {
-            "rows": [
-                JobLog(
-                    level=random.choice(list(JobLogLevel.values.keys())),
-                    message=f.paragraph(),
-                    timestamp=timezone.now(),
-                )
-                for i in range(0, random.randint(2, 20))
-            ],
-        }
+        return [
+            JobLog(
+                level=random.choice(list(JobLogLevel.values)),
+                message=f.paragraph(),
+                timestamp=timezone.now(),
+            )
+            for i in range(0, random.randint(2, 20))
+        ]
 
     def get_stopped_joblogs(self, job):
-        return {
-            "rows": job.joblog_set.order_by("-timestamp"),
-        }
+        return job.joblog_set.order_by("-timestamp")
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
-        extra_context = extra_context or {}
+        # TODO do we really have to retrieve this ourselves?
         job = Job.objects.get(id=object_id)
 
+        extra_context = extra_context or {}
         extra_context["title"] = "Job"
 
         if job.state == JobState.precheck:
-            # TODO swap for precheck logs
             extra_context["title"] = _("Precheck")
-            extra_context["joblog_table"] = self.get_precheck_joblogs(job)
             extra_context["value_table"] = {
-                "rows": self.get_precheck_stats(),
+                "rows": self.get_precheck_stats(job),
+            }
+            extra_context["joblog_table"] = {
+                "show_timestamp": False,
+                "rows": self.get_precheck_joblogs(job),
             }
         elif job.state == JobState.queued:
             extra_context["title"] = _("Queued Job")
+
         elif job.state == JobState.running:
             extra_context["title"] = _("Running..")
             extra_context["value_table"] = {
-                "rows": self.get_running_stats(),
+                "rows": transform_statistics(job.results),
             }
         elif job.state in JobState.completed:
             extra_context["title"] = _("Import completed")
-            extra_context["joblog_table"] = self.get_stopped_joblogs(job)
             extra_context["value_table"] = {
                 "title": _("Results"),
-                "rows": self.get_completed_stats(),
+                "rows": transform_statistics(job.results),
+            }
+            extra_context["joblog_table"] = {
+                "show_timestamp": True,
+                "rows": self.get_stopped_joblogs(job),
             }
         elif job.state in JobState.error:
-            extra_context["title"] = _("Error")
-            extra_context["joblog_table"] = self.get_stopped_joblogs(job)
+            extra_context["title"] = _("Import Error")
             extra_context["value_table"] = {
                 "title": _("Error"),
-                "rows": self.get_completed_stats(),
+                "rows": transform_statistics(job.results),
+            }
+            extra_context["joblog_table"] = {
+                "show_timestamp": True,
+                "rows": self.get_stopped_joblogs(job),
             }
 
         return super().change_view(
@@ -330,6 +287,7 @@ class JobAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related("catalog")
 
     def year_fmt(self, job):
+        # Django insists on adding thousands separator to IntegerField's so stringify manually
         return str(job.year)
 
     year_fmt.short_description = _("Selectielijst year")
@@ -360,3 +318,86 @@ class JobAdmin(admin.ModelAdmin):
         )
 
     source_fmt.short_description = _("XML File")
+
+
+def transform_statistics(raw_data):
+    """
+    Transform a dictionary of tuples with progress/result statistics into key/value rows for display
+
+    {
+        "data": {
+            ObjectTypenKeys.roltypen: (10, 10),
+            ObjectTypenKeys.statustypen: (20, 20),
+            ObjectTypenKeys.resultaattypen: (30, 30, {JobLogLevel.warning: 2, JobLogLevel.error: 1}),
+            ObjectTypenKeys.informatieobjecttypen: (40, 40, None),
+            ObjectTypenKeys.zaakinformatieobjecttypen: (50, 50, {JobLogLevel.warning: 5}),
+        },
+    }
+
+    Output something like:
+
+    [
+        ("Foo": "1 / 2"),
+        ("Bar": "2 / 5 (4 warnings, 2 errors)"),
+    ]
+    """
+
+    # generate table even if we dont have data
+    if raw_data is None:
+        raw_data = dict()
+    data = raw_data.get("data", dict())
+
+    rows = []
+    for key in ObjectTypenKeys.values:
+        label = ObjectTypenKeys.values[key]
+
+        if key in data:
+            # juggle 2-3 tuples
+            value = data[key]
+            if len(value) == 2:
+                count, total = data[key]
+                logstats = None
+            else:
+                count, total, logstats = data[key]
+        else:
+            # default
+            count, total, logstats = (0, 0, None)
+
+        # collect formatted
+        info_fmt = format_logstats_dict(logstats)
+        if info_fmt:
+            info_fmt = " " + info_fmt
+
+        stat_fmt = f"{count} / {total}{info_fmt}"
+
+        rows.append((label, stat_fmt))
+
+    return rows
+
+
+def format_logstats_dict(info):
+    """
+    Format a dictionary of {log_level: count} into a readable one-line string
+
+    {
+        "warning", 10,
+        "error", 2,
+    }
+
+    Output:
+
+    (10 warnings, 2 errors)
+
+    """
+    if not info:
+        return ""
+
+    parts = []
+    for level in JobLogLevel.values:
+        if level in info:
+            parts.append(f"{info[level]} {JobLogLevel.labels[level].lower()}s")
+
+    if parts:
+        return f"({', '.join(parts)})"
+    else:
+        return ""

@@ -1,11 +1,14 @@
 from datetime import timedelta
 from random import randint
 
+from django.utils import timezone
+
 import factory
 import pytz
 
-from importer.core.choices import JobState
-from importer.core.models import CatalogConfig, Job
+from importer.core.choices import JobLogLevel, JobState
+from importer.core.constants import ObjectTypenKeys
+from importer.core.models import CatalogConfig, Job, JobLog
 
 
 class CatalogConfigFactory(factory.django.DjangoModelFactory):
@@ -40,6 +43,17 @@ class RunningJobFactory(JobFactory):
         lambda obj: obj.created_at + timedelta(minutes=randint(1, 15))
     )
 
+    results = {
+        "data": {
+            ObjectTypenKeys.statustypen: (10, 20, {JobLogLevel.warning: 3}),
+            ObjectTypenKeys.roltypen: (
+                5,
+                10,
+                {JobLogLevel.warning: 2, JobLogLevel.error: 1},
+            ),
+        }
+    }
+
 
 class CompletedJobFactory(RunningJobFactory):
     state = JobState.completed
@@ -50,3 +64,13 @@ class CompletedJobFactory(RunningJobFactory):
 
 class ErrorJobFactory(CompletedJobFactory):
     state = JobState.error
+
+
+class JobLogFactory(factory.django.DjangoModelFactory):
+    job = factory.SubFactory(JobFactory)
+    level = JobLogLevel.warning
+    timestamp = timezone.now()
+    message = "an important message"
+
+    class Meta:
+        model = JobLog

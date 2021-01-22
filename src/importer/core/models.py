@@ -1,3 +1,6 @@
+import types
+
+from django.contrib.postgres.fields import JSONField
 from django.core.validators import (
     FileExtensionValidator,
     MaxValueValidator,
@@ -73,13 +76,11 @@ class Job(models.Model):
         "core.CatalogConfig",
         on_delete=models.PROTECT,
     )
-
     year = models.SmallIntegerField(
         _("Selectielijst year"),
         help_text=_("Year to import to."),
         validators=[MinValueValidator(1000), MaxValueValidator(9999)],
     )
-
     source = models.FileField(
         _("XML File"),
         upload_to=get_job_source_file_name,
@@ -87,7 +88,6 @@ class Job(models.Model):
         validators=[FileExtensionValidator(["xml"])],
         help_text=_("i-Navigator XML export file."),
     )
-
     state = models.CharField(
         _("State"),
         max_length=32,
@@ -95,7 +95,17 @@ class Job(models.Model):
         choices=JobState.choices,
         db_index=True,
     )
-
+    results = JSONField(
+        _("Results"),
+        default=dict,
+        blank=True,
+    )
+    # created_by = models.ForeignKey(
+    #     get_user_model(),
+    #     on_delete=models.PROTECT,
+    #     blank=True,
+    #     null=True
+    # )
     created_at = models.DateTimeField(
         _("Job created"), auto_now_add=True, db_index=True
     )
@@ -111,22 +121,56 @@ class Job(models.Model):
         return f"{force_text(self._meta.verbose_name)}#{self.id}"
 
     def mark_running(self):
-        # TODO add checks, lock? (maybe at higher level)
+        # validity is checked at higher level
         self.state = JobState.running
         self.started_at = timezone.now()
         self.save()
 
     def mark_completed(self):
-        # TODO add checks, lock? (maybe at higher level)
+        # validity is checked at higher level
         self.state = JobState.completed
         self.stopped_at = timezone.now()
         self.save()
 
     def mark_error(self):
-        # TODO add checks, lock? (maybe at higher level)
+        # validity is checked at higher level)
         self.state = JobState.error
         self.stopped_at = timezone.now()
         self.save()
+
+    def add_log(self, level, message):
+        self.joblog_set.create(level=level, message=message)
+
+    def set_results(self, results):
+        assert isinstance(results, dict)
+        self.results = results
+        self.save(update_fields=("results",))
+
+    def get_duration(self):
+        if self.started_at and self.stopped_at:
+            return self.stopped_at - self.started_at
+        else:
+            return None
+
+    get_duration.short_description = _("Job Duration")
+
+    def get_duration_display(self):
+        duration = self.get_duration()
+        if duration:
+            seconds = duration.total_seconds()
+            if seconds < 300:
+                return f"{round(seconds)}s"
+            else:
+                if seconds % 60 == 0:
+                    return f"{round(seconds / 60)}m"
+                else:
+                    return f"{round(seconds / 60)}m {round(seconds % 60)}s"
+        elif self.started_at:
+            return ".."
+        else:
+            return "-"
+
+    get_duration_display.short_description = _("Job Duration")
 
 
 class JobLog(models.Model):
@@ -150,8 +194,8 @@ class JobLog(models.Model):
 
     # TODO we probably want to register more fields, like the sub catalog, object uri etc
 
-    def message_trim_line(self):
-        return self.message.splitlines()[0][:32]
+    def message_trim_line(self, length=32):
+        return self.message.splitlines()[0][:length]
 
     message_trim_line.short_description = _("Message")
     message_trim_line.admin_order_field = "message"

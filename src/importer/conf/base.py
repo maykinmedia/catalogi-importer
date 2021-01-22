@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     # 'django.contrib.humanize',
     # 'django.contrib.sitemaps',
     # External applications.
+    "solo",
     "axes",
     "sniplates",
     "hijack",

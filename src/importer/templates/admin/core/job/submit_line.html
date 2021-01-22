@@ -5,7 +5,11 @@
     {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
     <p class="deletelink-box"><a href="{% add_preserved_filters delete_url %}" class="deletelink">{% trans "Delete" %}</a></p>
 {% endif %}
-{% if show_save_and_continue %}<input type="submit" class="default" value="{% trans 'Continue' %}" name="_continue">{% endif %}
+{# modified to use the 'save & continue' mode by default for better experience #}
+{% if show_save_and_continue or show_save_as_new or show_save_and_add_another %}
+<input type="hidden" name="_continue" value="">
+<input type="submit" class="default" value="{% trans 'Continue' %}" name="_submit">
+{% endif %}
 {% if show_close %}<a href="{% url opts|admin_urlname:'changelist' %}" class="closelink">{% trans 'Close' %}</a>{% endif %}
 {% endblock %}
 </div>

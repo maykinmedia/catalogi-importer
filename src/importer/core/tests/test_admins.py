@@ -15,9 +15,22 @@ from importer.core.tests.factories import (
     CompletedJobFactory,
     ErrorJobFactory,
     JobFactory,
+    JobLogFactory,
     QueuedJobFactory,
     RunningJobFactory,
 )
+
+
+class SelectielijstAdminViewTest(AdminWebTest):
+    def test_list_view(self):
+        self.assertAdminChangeList(CatalogConfig, check_search=False)
+
+    def test_add_view(self):
+        self.app.get(self.reverse_add_url(CatalogConfig))
+
+    def test_change_view(self):
+        catalog = CatalogConfigFactory()
+        self.app.get(self.reverse_change_url(catalog))
 
 
 class CatalogConfigAdminViewTest(AdminWebTest):
@@ -56,13 +69,16 @@ class JobAdminViewTest(AdminWebTest):
         form["year"] = 2021
         form["source"] = Upload("export.xml", b"data", "text/xml")
 
-        response = form.submit().follow()
+        response = form.submit()
 
         job = Job.objects.get()
         self.assertEqual(job.year, 2021)
         self.assertEqual(job.catalog, catalog)
         self.assertEqual(job.state, JobState.precheck)
         self.assertEqual(job.source.read(), b"data")
+
+        # verify we use Save & Continue to return to change page
+        self.assertRedirects(response, self.reverse_change_url(job))
 
     def test_source_link(self):
         job = CompletedJobFactory()
@@ -91,8 +107,8 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowNotExists(response, "stopped_at")
 
         # TODO verify content
-        self.assertPyQueryExists(response, ".value-display h1")
         self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryExists(response, ".joblog-display-table")
 
     def test_change_queued(self):
         job = QueuedJobFactory()
@@ -110,6 +126,9 @@ class JobAdminViewTest(AdminWebTest):
 
         self.assertFormRowNotExists(response, "started_at")
         self.assertFormRowNotExists(response, "stopped_at")
+
+        self.assertPyQueryNotExists(response, ".value-display-table")
+        self.assertPyQueryNotExists(response, ".joblog-display-table")
 
     def test_change_running(self):
         job = RunningJobFactory()
@@ -129,11 +148,12 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowNotExists(response, "stopped_at")
 
         # TODO verify content
-        self.assertPyQueryExists(response, ".value-display h1")
         self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryNotExists(response, ".joblog-display-table")
 
     def test_change_completed(self):
         job = CompletedJobFactory()
+        logs = [JobLogFactory(job=job) for _ in range(3)]
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
@@ -147,9 +167,13 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "state")
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at")
+
+        self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryExists(response, ".joblog-display-table")
 
     def test_change_error(self):
         job = ErrorJobFactory()
+        logs = [JobLogFactory(job=job) for _ in range(3)]
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
@@ -163,3 +187,6 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "state")
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at")
+
+        self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryExists(response, ".joblog-display-table")

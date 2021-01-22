@@ -4,12 +4,12 @@ import time
 
 from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
 
 from celery import shared_task
 from faker import Faker
 
 from importer.core.choices import JobLogLevel, JobState
+from importer.core.constants import ObjectTypenKeys
 from importer.core.models import Job
 
 logger = logging.getLogger(__name__)
@@ -39,10 +39,13 @@ def import_job_task(job_id):
 
     try:
         # fetch full job after the locking transaction
-        job = Job.objects.select_related("catalog").get(id=job_id)
+        job = Job.objects.select_related("catalog").get(
+            id=job_id, state=JobState.running
+        )
 
+        # run the importer
         import_job(job)
-        # raise IOError('foo')
+
         job.mark_completed()
         logger.info(f"[Job#{job_id}] completed")
 
@@ -62,12 +65,50 @@ def import_job_task(job_id):
 
 
 def import_job(job):
+    # TODO swap fake for real import
     f = Faker()
 
-    for i in range(0, random.randint(5, 20)):
-        job.joblog_set.create(
-            level=random.choice(list(JobLogLevel.values.keys())),
-            message=f.paragraph(),
-            timestamp=timezone.now(),
-        )
+    lim = random.randint(10, 20)
+
+    for i in range(0, lim + 1):
+        job.add_log(random.choice(list(JobLogLevel.values.keys())), f.paragraph())
+        r = i / lim
+        results = {
+            "data": {
+                ObjectTypenKeys.roltypen: (round(r * 10), 10, None),
+                ObjectTypenKeys.statustypen: (round(r * 33), 33, None),
+                ObjectTypenKeys.resultaattypen: (
+                    round(r * 23),
+                    23,
+                    {JobLogLevel.warning: round(r * 2)},
+                ),
+                ObjectTypenKeys.informatieobjecttypen: (round(r * 40), 40, None),
+                ObjectTypenKeys.zaakinformatieobjecttypen: (
+                    round(r * 50),
+                    50,
+                    {JobLogLevel.warning: round(r * 4)},
+                ),
+            },
+        }
+        job.set_results(results)
         time.sleep(1)
+
+    results = {
+        "data": {
+            ObjectTypenKeys.roltypen: (10, 10, None),
+            ObjectTypenKeys.statustypen: (20, 20, None),
+            ObjectTypenKeys.resultaattypen: (
+                30,
+                30,
+                {JobLogLevel.warning: 2, JobLogLevel.error: 1},
+            ),
+            ObjectTypenKeys.informatieobjecttypen: (40, 40, None),
+            ObjectTypenKeys.zaakinformatieobjecttypen: (
+                50,
+                50,
+                {JobLogLevel.warning: 5},
+            ),
+        },
+    }
+    job.set_results(results)
+    time.sleep(1)

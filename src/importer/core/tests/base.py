@@ -95,8 +95,9 @@ class AdminWebTest(WebTest):
     def assertFormHasNoFields(self, response, allow_fields=None):
         # check no fields are exposed accidentally
         form = response.form
-        expect_fields = {"csrfmiddlewaretoken"}
-        if allow_fields:
+        expect_fields = {"csrfmiddlewaretoken", "_continue", "_submit"}
+        if allow_fields is not None:
             expect_fields |= set(allow_fields)
-
-        self.assertEqual(set(form.fields.keys()), expect_fields)
+        print(expect_fields)
+        print(set(form.fields.keys()))
+        self.assertEqual(set(), set(form.fields.keys()) - expect_fields)
