@@ -1,0 +1,372 @@
+/*
+Generic admin styling overrides.
+
+DO NOT PUT ANY TARGET APP-SPECIFIC RULES HERE.
+ */
+/* Colors */
+/* Overrides */
+body {
+  overflow-y: scroll;
+}
+
+a:link, a:visited {
+  color: #017092;
+}
+
+a:focus, a:hover {
+  color: #051F31;
+}
+
+#header {
+  color: #fff;
+  background: #04A5BB;
+  /* border-bottom: 8px solid $color_secondary; */
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 100000;
+}
+
+#header a:link, #header a:visited {
+  color: #fff;
+}
+
+#user-tools a {
+  border-bottom: none;
+  text-decoration: underline;
+}
+
+#user-tools a:focus, #user-tools a:hover {
+  color: #000;
+}
+
+.module h2, .module caption, .inline-group h2 {
+  background: #04A5BB;
+}
+
+#branding h1 {
+  color: #F3F3F3;
+}
+
+#branding h1 a:link, #branding h1 a:visited {
+  color: #F3F3F3;
+}
+
+div.breadcrumbs {
+  background: #F3F3F3;
+  color: #04A5BB;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 60px;
+  z-index: 100000;
+}
+
+div.breadcrumbs a {
+  color: #333;
+}
+
+div.breadcrumbs a:focus, div.breadcrumbs a:hover {
+  color: #000;
+}
+
+/* Important is used because Django templates include their own style, after ours */
+#changelist-filter a:focus, #changelist-filter a:hover {
+  color: #017092 !important;
+}
+
+#changelist-filter li.selected a {
+  color: #017092 !important;
+}
+
+#changelist-filter li.selected a:focus, #changelist-filter li.selected a:hover {
+  color: #04A5BB !important;
+}
+
+.object-tools a:focus, .object-tools a:hover {
+  background-color: #333;
+}
+
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+  background: #04A5BB;
+  color: #fff;
+  /* border: 2px solid $color_dark; */
+}
+
+.button:active, input[type=submit]:active, input[type=button]:active, .button:focus, input[type=submit]:focus, input[type=button]:focus, .button:hover, input[type=submit]:hover, input[type=button]:hover {
+  background: #017092;
+}
+
+.button.default, input[type=submit].default, .submit-row input.default {
+  background: #017092;
+}
+
+.button.default:active, input[type=submit].default:active, .button.default:focus, input[type=submit].default:focus, .button.default:hover, input[type=submit].default:hover {
+  background: #000;
+}
+
+.delete-confirmation form .cancel-link {
+  background: #C3EAEF;
+  color: #fff;
+}
+
+.delete-confirmation form .cancel-link:active, .delete-confirmation form .cancel-link:focus, .delete-confirmation form .cancel-link:hover {
+  background: #333;
+}
+
+/* Many to many selector */
+.selector-chosen h2 {
+  background: #04A5BB !important;
+}
+
+/* Calendar widget */
+.calendar caption {
+  background: #C6C6C6 !important;
+  color: #333 !important;
+}
+
+.calendar td a:active {
+  background: #04A5BB !important;
+}
+
+.calendar td a:focus, .calendar td a:hover {
+  background: #017092 !important;
+}
+
+.calendar td.selected a {
+  background: #04A5BB !important;
+}
+
+.calendarbox h2 {
+  background: #C6C6C6 !important;
+  color: #333 !important;
+}
+
+/* Time widget */
+.timelist a:active {
+  background: #04A5BB !important;
+}
+
+.timelist a:focus, .timelist a:hover {
+  background: #017092 !important;
+}
+
+.module.clockbox h2 {
+  /* Match the clock widget with the calendar widget */
+  background: #C6C6C6 !important;
+  color: #333 !important;
+  font-weight: bold !important;
+}
+
+/* Icons */
+.addlink {
+  background: url("../../img/admin/plus-square-regular.svg") 0 0/14px 14px no-repeat;
+}
+
+.changelink, .inlinechangelink {
+  background: url("../../img/admin/edit-regular.svg") 0 0/14px 14px no-repeat;
+}
+
+.deletelink {
+  background: url("../../img/admin/trash-alt-regular.svg") 0 0/14px 14px no-repeat;
+}
+
+.datetimeshortcuts .clock-icon {
+  background: url("../../img/admin/clock-regular.svg") 0 0/14px 14px no-repeat !important;
+}
+
+.datetimeshortcuts .date-icon {
+  background: url("../../img/admin/calendar-alt-regular.svg") 0 0/14px 14px no-repeat !important;
+}
+
+/**
+ * Environment banner
+ */
+.env {
+  display: block;
+  line-height: 35px;
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #F3F3F3;
+  background-color: #333;
+  position: fixed;
+  top: 0;
+  height: 35px;
+  width: 300px;
+  left: 50%;
+  margin-left: -150px;
+  z-index: 1000001;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+/**
+ * DJANGO ADMIN INDEX
+ */
+.dropdown-menu {
+  /* Override for Environment banner */
+  top: 48px;
+  /* Added to attach body */
+  border-bottom: 8px solid #F3F3F3;
+}
+
+.breadcrumbs {
+  top: 48px !important;
+}
+
+/* Integration into color scheme */
+.dropdown-menu {
+  background-color: #04A5BB;
+}
+
+.dropdown-menu .dropdown-menu__item,
+.dropdown-menu .dropdown-menu__item:link,
+.dropdown-menu .dropdown-menu__item:visited {
+  color: #fff;
+}
+
+.dropdown-menu .dropdown-menu__item.dropdown-menu__item--active,
+.dropdown-menu .dropdown-menu__item:link.dropdown-menu__item--active,
+.dropdown-menu .dropdown-menu__item:visited.dropdown-menu__item--active {
+  background-color: #F3F3F3;
+  text-decoration: none;
+  color: #04A5BB;
+}
+
+.dropdown-menu .dropdown-menu__item.dropdown-menu__item--active:hover,
+.dropdown-menu .dropdown-menu__item:link.dropdown-menu__item--active:hover,
+.dropdown-menu .dropdown-menu__item:visited.dropdown-menu__item--active:hover {
+  color: #fff;
+}
+
+.dropdown-menu .dropdown-menu__item:hover,
+.dropdown-menu .dropdown-menu__item:link:hover,
+.dropdown-menu .dropdown-menu__item:visited:hover {
+  background-color: #017092;
+}
+
+.dropdown-menu .dropdown-menu__drop {
+  background-color: #04A5BB;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-menu .dropdown-menu__link,
+.dropdown-menu .dropdown-menu__link:link,
+.dropdown-menu .dropdown-menu__link:visited {
+  color: #fff;
+}
+
+.dropdown-menu .dropdown-menu__link:hover,
+.dropdown-menu .dropdown-menu__link:link:hover,
+.dropdown-menu .dropdown-menu__link:visited:hover {
+  background-color: #017092;
+}
+
+.dropdown-menu .dropdown-menu__link.dropdown-menu__link--active,
+.dropdown-menu .dropdown-menu__link:link.dropdown-menu__link--active,
+.dropdown-menu .dropdown-menu__link:visited.dropdown-menu__link--active {
+  background-color: #017092;
+  text-decoration: none;
+}
+
+/* Override for wider dropdown */
+.dropdown-menu .dropdown-menu__drop {
+  min-width: 250px;
+}
+
+/**
+ * DJANGO-BETTER-ADMIN-ARRAYFIELD
+ * Some elements are marked as !important because the style is loaded after
+ * this theme.
+ */
+.dynamic-array-widget {
+  /* Substitute with icon */
+}
+
+.dynamic-array-widget button {
+  background: #04A5BB !important;
+  color: #fff !important;
+  /* Substitute theme style above with icon. Solves translation string as well. */
+}
+
+.dynamic-array-widget button:hover {
+  background: #017092 !important;
+  /* border: 2px solid $color_dark !important; */
+}
+
+.dynamic-array-widget button.add-array-item {
+  background: url("../../img/admin/plus-square-regular.svg") 0 0/14px 14px no-repeat !important;
+  width: 14px;
+  line-height: 16px;
+  text-indent: -9999px;
+  white-space: nowrap;
+  margin: 0 0 5px 170px;
+  display: block;
+}
+
+.dynamic-array-widget button.add-array-item:focus {
+  outline-width: 0;
+}
+
+.dynamic-array-widget .remove {
+  background: url("../../img/admin/trash-alt-regular.svg") 0 0/14px 14px no-repeat;
+  width: 14px;
+  line-height: 16px;
+}
+
+.dynamic-array-widget .remove .remove_sign {
+  display: none;
+}
+
+/**
+ * Branding
+ */
+#branding h1 a:link, #branding h1 a:visited {
+  font-weight: bold;
+}
+
+/**
+ * Help text mouseover
+ */
+div.help:hover {
+  text-indent: inherit;
+  width: auto;
+  background-image: none;
+  padding-left: 5px !important;
+  position: absolute;
+}
+
+div.help {
+  cursor: help;
+  width: 16px;
+  height: 16px;
+  background-image: url(../../admin/img/icon-unknown.svg);
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-size: 14px;
+  margin-left: 0 !important;
+  text-indent: -9999px;
+}
+
+.aligned label + div.readonly {
+  display: inline-block;
+  margin-left: inherit !important;
+}
+
+/*
+ Project/app specific overrides, coupled to the data model.
+
+ Generic overrides should go in _admin_theme.scss
+ */
+/* Secondary submit row */
+.submit-row.submit-row-extended {
+  margin-top: -24px;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.submit-row.submit-row-extended .button {
+  height: 35px;
+  line-height: 15px;
+  margin: 0 0 0 5px;
+  padding: 10px 15px;
+}

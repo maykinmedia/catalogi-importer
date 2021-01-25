@@ -1,0 +1,18 @@
+{% extends "master.html" %}
+
+{% block content %}
+
+  <div class="px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+    <h1 class="display-4">{{ settings.PROJECT_NAME }} API</h1>
+    <p class="lead">{{ settings.SITE_TITLE }}</p>
+  </div>
+
+  <div class="container text-center">
+
+    <p>
+      <a href="{% url 'admin:index' %}" class="btn btn-sm btn-danger"><i class="fas fa-lock"></i> Administration</a>
+    </p>
+
+  </div>
+
+{% endblock %}
