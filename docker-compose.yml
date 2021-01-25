@@ -18,7 +18,7 @@ services:
       - 8000:8000
     depends_on:
       - db
-      -
+      - redis
   redis:
     # NOTE: No persistance storage configured.
     # See: https://hub.docker.com/_/redis/
