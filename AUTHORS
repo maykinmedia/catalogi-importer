@@ -1,0 +1,19 @@
+The Catalogi Importer project was initiated by the municipality of Delft and 
+allows users to load i-Navigator exports into the Catalogi API.
+
+Here is an inevitably incomplete list of MUCH-APPRECIATED CONTRIBUTORS --
+people who laid the groundwork, have submitted patches, reported bugs, added
+translations, helped answer questions, and generally made the components that 
+much better:
+
+    Anna Shamray <anna@maykinmedia.nl>
+    Joeri Bekker <joeri@maykinmedia.nl>
+    Sergei Maertens <sergei@maykinmedia.nl>
+    Bart van der Schoor <bart@maykinmedia.nl>
+
+A big THANK YOU goes to:
+
+    The municipality of Delft for their active support in creating this 
+    application.
+
+    All people behind Common Ground for their enthusiasm and vision.
