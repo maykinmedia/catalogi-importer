@@ -8,7 +8,7 @@ Catalogi Importer
 
 |build-status| |code-quality| |docs| |black| |python-versions|
 
-Easiy import i-Navigator exports into the Catalogi API, such as the one in 
+Easily import i-Navigator exports into the Catalogi API, such as the one in 
 `Open Zaak`_.
 (`Nederlandse versie`_)
 
