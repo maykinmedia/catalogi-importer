@@ -8,31 +8,32 @@ Catalogi Importer
 
 |build-status| |code-quality| |docs| |black| |python-versions|
 
-Easily import i-Navigator exports into the Catalogi API, such as the one in 
-`Open Zaak`_.
-(`Nederlandse versie`_)
+Eenvoudig i-Navigator exports importeren in een Catalogi API, zoals die in 
+`Open Zaak`_ zit.
+(`English version`_)
 
-Developed by `Maykin Media B.V.`_ and commissioned by the municipality of Delft.
+Ontwikkeld door `Maykin Media B.V.`_ voor Gemeente Delft
 
 
-Introduction
-============
+Introductie
+===========
 
-The `Catalogi API`_ is the main place to store your zaaktypes when using the 
-`API's voor Zaakgericht Werken`_, part of the `Common Ground`_ landscape. 
-However, many municipalities currently have their zaaktypes stored in 
-i-Navigator.
+De `Catalogi API`_ is de bron om alle zaaktypen te ontsluiten als er gebruik
+wordt gemaakt van de `API's voor Zaakgericht Werken`_, onderdeel in het
+`Common Ground`_ landschap. Veel gemeenten gebruiken op dit moment echter het
+i-Navigator product.
 
-To keep the manual overhead to a minimum, the Catalogi Importer can load 
-i-Navigator exports into any catalog present in a Catalogi API. All zaaktypes
-are created as concepts, so you can easily make additional changes afterwards 
-if needed.
+Om het importeren zo geautomatiseerd mogelijk te maken, kan de Catalogi
+Importer een i-Navigator export inladen in elke catalogus die beschikbaar is via
+een Catalogi API. Alle zaaktypen worden aangemaakt als concept zodat achteraf
+nog eenvoudig wijzigingen kunnen worden gemaakt.
 
 
 Quickstart
 ==========
 
-A `docker-compose-quickstart.yml`_ is provided to get up and running quickly. To run the container:
+Om het startprocess van de Catalogi Importer te vereenvoudigen, is er een `docker-compose-quickstart.yml`_ beschikbaar.
+Voer de volgende commando's uit om de containers te starten:
 
     .. code:: shell
 
@@ -40,28 +41,28 @@ A `docker-compose-quickstart.yml`_ is provided to get up and running quickly. To
         $ docker-compose -f docker-compose-quickstart.yml up -d
         $ docker-compose exec web src/manage.py createsuperuser
 
-Then, navigate to ``http://127.0.0.1:8000/`` and log in with the credentials created.
+Ga daarna naar ``http://127.0.0.1:8000/`` en log in met de inloggegevens die je zojuist hebt gemaakt.
 
 .. _docker-compose-quickstart.yml: docker-compose-quickstart.yml
 
 
-License
-=======
+Licentie
+========
 
 Copyright © Maykin Media, 2021
 
 Licensed under the `EUPL`_.
 
-References
-==========
+Referenties
+===========
 
-* `Documentation <https://catalogi-importer.readthedocs.io/>`_
+* `Documentatie <https://catalogi-importer.readthedocs.io/>`_
 * `Issues <https://github.com/maykinmedia/catalogi-importer/issues>`_
 * `Code <https://github.com/maykinmedia/catalogi-importer>`_
 * `Community <https://commonground.nl/groups/view/54478547/archiefbeheercomponent>`_
 * `Docker image <https://hub.docker.com/r/maykinmedia/catalogi-importer>`_
 
-.. _`Nederlandse versie`: README.NL.rst
+.. _`English version`: README.rst
 .. _`Maykin Media B.V.`: https://www.maykinmedia.nl
 .. _`Open Zaak`: https://opengem.nl/producten/open-zaak/
 .. _`API's voor Zaakgericht Werken`: https://github.com/VNG-Realisatie/gemma-zaken
