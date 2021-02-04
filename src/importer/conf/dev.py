@@ -111,6 +111,7 @@ CACHES = {
 
 AXES_CACHE = "axes_cache"
 
+SENDFILE_BACKEND = "sendfile.backends.development"
 
 # THOU SHALT NOT USE NAIVE DATETIMES
 warnings.filterwarnings(

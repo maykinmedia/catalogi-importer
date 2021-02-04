@@ -28,6 +28,7 @@ local.py
 /media/
 /private_media/
 /static/
+/private_media/
 /mail/
 /log/*.log*
 /log/nginx/*.log*
