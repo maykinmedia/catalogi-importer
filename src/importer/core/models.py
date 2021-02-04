@@ -1,5 +1,3 @@
-import types
-
 from django.contrib.postgres.fields import JSONField
 from django.core.validators import (
     FileExtensionValidator,
@@ -100,12 +98,6 @@ class Job(models.Model):
         default=dict,
         blank=True,
     )
-    # created_by = models.ForeignKey(
-    #     get_user_model(),
-    #     on_delete=models.PROTECT,
-    #     blank=True,
-    #     null=True
-    # )
     created_at = models.DateTimeField(
         _("Job created"), auto_now_add=True, db_index=True
     )
@@ -139,6 +131,7 @@ class Job(models.Model):
         self.save()
 
     def add_log(self, level, message):
+        assert level in JobLogLevel.values, f"'{level}' is not a valid {JobLogLevel}"
         self.joblog_set.create(level=level, message=message)
 
     def set_results(self, results):

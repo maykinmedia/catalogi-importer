@@ -121,6 +121,7 @@ class ObjectTypenKeys(DjangoChoices):
     """
 
     roltypen = ChoiceItem("rt", _("Roltypen"))
+    zaaktypen = ChoiceItem("zt", _("Zaaktypen"))
     statustypen = ChoiceItem("st", _("Statustypen"))
     resultaattypen = ChoiceItem("rst", _("Resultaattypen"))
     informatieobjecttypen = ChoiceItem("iot", _("Informatieobjecttypen"))

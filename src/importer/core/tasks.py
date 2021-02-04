@@ -10,6 +10,7 @@ from faker import Faker
 
 from importer.core.choices import JobLogLevel, JobState
 from importer.core.constants import ObjectTypenKeys
+from importer.core.importer import run_import
 from importer.core.models import Job
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,8 @@ def import_job_task(job_id):
         )
 
         # run the importer
-        import_job(job)
+        # mock_import_job(job)
+        run_import(job)
 
         job.mark_completed()
         logger.info(f"[Job#{job_id}] completed")
@@ -64,7 +66,7 @@ def import_job_task(job_id):
     logger.info(f"[Job#{job_id}] task duration {duration}")
 
 
-def import_job(job):
+def mock_import_job(job):
     # TODO swap fake for real import
     f = Faker()
 

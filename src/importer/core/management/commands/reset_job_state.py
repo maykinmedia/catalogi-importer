@@ -31,5 +31,6 @@ class Command(BaseCommand):
         else:
             job.state = state
             job.save()
+            job.joblog_set.all().delete()
             if options["run"]:
                 import_job_task.delay(job.id)

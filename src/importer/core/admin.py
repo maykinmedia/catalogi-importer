@@ -1,21 +1,19 @@
 import os
-import random
 
 from django import forms
 from django.contrib import admin
 from django.db import models
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from faker import Faker
 from solo.admin import SingletonModelAdmin
 from zgw_consumers.models import Service
 
 from importer.core.choices import JobLogLevel, JobState
 from importer.core.constants import ObjectTypenKeys
-from importer.core.models import CatalogConfig, Job, JobLog, SelectielijstConfig
+from importer.core.importer import precheck_import
+from importer.core.models import CatalogConfig, Job, SelectielijstConfig
 from importer.core.tasks import import_job_task
 from importer.utils.forms import StaticHiddenField
 
@@ -56,48 +54,6 @@ class CatalogConfigAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
-
-
-@admin.register(JobLog)
-class JobLogAdmin(admin.ModelAdmin):
-    fields = [
-        "job",
-        "level",
-        "timestamp",
-        "message",
-    ]
-    readonly_fields = [
-        "timestamp",
-    ]
-    list_display = [
-        "timestamp",
-        "job",
-        "level",
-        "message_trim_line",
-    ]
-    raw_id_fields = [
-        "job",
-    ]
-    list_filter = [
-        "level",
-    ]
-    date_hierarchy = "timestamp"
-    ordering = [
-        "-timestamp",
-    ]
-    search_fields = [
-        "message",
-        "job__id",
-    ]
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
 
 
 class JobStateQueueForm(forms.ModelForm):
@@ -142,29 +98,24 @@ class JobAdmin(admin.ModelAdmin):
                 "year",
                 "source",
             ]
-        # readonly mode, adding fields as state flow progresses
-        fields = [
-            "catalog_fmt",
-            "year_fmt",
-            "source_fmt",
-            "state",
-            "created_at",
-        ]
-        if job.state == JobState.running:
-            return fields + [
-                "started_at",
-            ]
-        elif job.state in (JobState.completed, JobState.error):
-            return fields + [
-                "started_at",
-                "stopped_at",
-            ]
         elif job.state == JobState.precheck:
             return [
                 "state",
+                "catalog_fmt",
+                "year_fmt",
+                "source_fmt",
+                "created_at",
             ]
         else:
-            return fields
+            return [
+                "catalog_fmt",
+                "year_fmt",
+                "source_fmt",
+                "state",
+                "created_at",
+                "started_at",
+                "stopped_at",
+            ]
 
     def get_readonly_fields(self, request, job=None):
         """
@@ -184,30 +135,6 @@ class JobAdmin(admin.ModelAdmin):
         else:
             return fields
 
-    def get_precheck_stats(self, job):
-        # TODO implement
-        return [
-            ("Status", "OK"),
-            ("IOTypen", "43"),
-            ("Zaaktypen", "32"),
-            ("Roltypen", "21 (7 warnings)"),
-            ("Statustypes", "17"),
-            ("Resultaattypen", "34"),
-            ("Zaakinformatieobjecttypen", "23"),
-        ]
-
-    def get_precheck_joblogs(self, job):
-        # TODO implement
-        f = Faker()
-        return [
-            JobLog(
-                level=random.choice(list(JobLogLevel.values)),
-                message=f.paragraph(),
-                timestamp=timezone.now(),
-            )
-            for i in range(0, random.randint(2, 20))
-        ]
-
     def get_stopped_joblogs(self, job):
         return job.joblog_set.order_by("-timestamp")
 
@@ -219,14 +146,20 @@ class JobAdmin(admin.ModelAdmin):
         extra_context["title"] = "Job"
 
         if job.state == JobState.precheck:
+            session = precheck_import(job)
+
             extra_context["title"] = _("Precheck")
             extra_context["value_table"] = {
-                "rows": self.get_precheck_stats(job),
+                "rows": transform_statistics(session.get_count_data()),
             }
             extra_context["joblog_table"] = {
                 "show_timestamp": False,
-                "rows": self.get_precheck_joblogs(job),
+                "rows": session.logs,
             }
+            # TODO remove debug stuff
+            extra_context["zaaktypen"] = getattr(session, "zaaktypen", None)
+            extra_context["iotypen"] = getattr(session, "iotypen", None)
+
         elif job.state == JobState.queued:
             extra_context["title"] = _("Queued Job")
 
@@ -235,7 +168,7 @@ class JobAdmin(admin.ModelAdmin):
             extra_context["value_table"] = {
                 "rows": transform_statistics(job.results),
             }
-        elif job.state in JobState.completed:
+        elif job.state == JobState.completed:
             extra_context["title"] = _("Import completed")
             extra_context["value_table"] = {
                 "title": _("Results"),
@@ -245,7 +178,7 @@ class JobAdmin(admin.ModelAdmin):
                 "show_timestamp": True,
                 "rows": self.get_stopped_joblogs(job),
             }
-        elif job.state in JobState.error:
+        elif job.state == JobState.error:
             extra_context["title"] = _("Import Error")
             extra_context["value_table"] = {
                 "title": _("Error"),
@@ -327,6 +260,7 @@ def transform_statistics(raw_data):
     {
         "data": {
             ObjectTypenKeys.roltypen: (10, 10),
+            ObjectTypenKeys.zaaktypen: (20, 20),
             ObjectTypenKeys.statustypen: (20, 20),
             ObjectTypenKeys.resultaattypen: (30, 30, {JobLogLevel.warning: 2, JobLogLevel.error: 1}),
             ObjectTypenKeys.informatieobjecttypen: (40, 40, None),
@@ -337,8 +271,9 @@ def transform_statistics(raw_data):
     Output something like:
 
     [
-        ("Foo": "1 / 2"),
-        ("Bar": "2 / 5 (4 warnings, 2 errors)"),
+        ("Roltypen": "1 / 2"),
+        ("Zaaktypen": "2 / 5 (4 warnings, 2 errors)"),
+        ...
     ]
     """
 
@@ -351,6 +286,7 @@ def transform_statistics(raw_data):
     for key in ObjectTypenKeys.values:
         label = ObjectTypenKeys.values[key]
 
+        # check if we got a value or show 0/0
         if key in data:
             # juggle 2-3 tuples
             value = data[key]
@@ -367,7 +303,6 @@ def transform_statistics(raw_data):
         info_fmt = format_logstats_dict(logstats)
         if info_fmt:
             info_fmt = " " + info_fmt
-
         stat_fmt = f"{count} / {total}{info_fmt}"
 
         rows.append((label, stat_fmt))
