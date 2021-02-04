@@ -69,9 +69,9 @@ References
 .. _`Catalogi API`: https://vng-realisatie.github.io/gemma-zaken/standaard/catalogi/index
 .. _`EUPL`: LICENSE.md
 
-.. |build-status| image:: https://github.com/maykinmedia/catalogi-importer/workflows/Run%20CI/badge.svg?branch=master
+.. |build-status| image:: https://github.com/maykinmedia/catalogi-importer/workflows/ci/badge.svg?branch=master
     :alt: Build status
-    :target: https://github.com/maykinmedia/catalogi-importer/actions?query=branch%3Amaster+workflow%3A%22Run+CI%22
+    :target: https://github.com/maykinmedia/catalogi-importer/actions?query=branch%3Amaster+workflow%3A%22ci%22
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: Code style
@@ -80,9 +80,9 @@ References
 .. |python-versions| image:: https://img.shields.io/badge/python-3.7-blue.svg
     :alt: Supported Python version
 
-.. |code-quality| image:: https://github.com/maykinmedia/catalogi-importer/workflows/Code%20quality%20checks/badge.svg
+.. |code-quality| image:: https://github.com/maykinmedia/catalogi-importer/workflows/code-quality/badge.svg
      :alt: Code quality checks
-     :target: https://github.com/maykinmedia/catalogi-importer/actions?query=workflow%3A%22Code+quality+checks%22
+     :target: https://github.com/maykinmedia/catalogi-importer/actions?query=workflow%3A%22code-quality%22
 
 .. |docs| image:: https://readthedocs.org/projects/catalogi-importer/badge/?version=latest
     :target: https://catalogi-importer.readthedocs.io/
