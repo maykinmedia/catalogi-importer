@@ -98,6 +98,4 @@ class AdminWebTest(WebTest):
         expect_fields = {"csrfmiddlewaretoken", "_continue", "_submit"}
         if allow_fields is not None:
             expect_fields |= set(allow_fields)
-        print(expect_fields)
-        print(set(form.fields.keys()))
         self.assertEqual(set(), set(form.fields.keys()) - expect_fields)

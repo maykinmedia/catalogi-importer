@@ -2,6 +2,8 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+from zds_client import ClientError
+
 from importer.core.choices import JobLogLevel
 from importer.core.constants import ObjectTypenKeys
 from importer.core.models import JobLog
@@ -208,3 +210,71 @@ def _format_logstats_dict(info):
         return f"({', '.join(parts)})"
     else:
         return ""
+
+
+def format_exception(exc):
+    """
+    Format a readable single-line summary from an ClientError, usually a ValidationError
+
+    ValidationError example:
+
+    {
+        "type": "http://localhost:9000/ref/fouten/ValidationError/",
+        "code": "invalid",
+        "title": "Invalid input.",
+        "status": 400,
+        "detail": "",
+        "instance": "urn:uuid:51e15b8d-98e7-4284-9869-94cbcef00d1f",
+        "invalidParams": [
+            {
+                "name": "beginGeldigheid",
+                "code": "overlap",
+                "reason": "Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode.",
+            },
+            {
+                "name": "nonFieldErrors",
+                "code": "unique",
+                "reason": "De velden catalogus, omschrijving moeten een unieke set zijn.",
+            }
+        ],
+    }
+
+    > Invalid input: 1) Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode (beginGeldigheid). 2) De velden catalogus, omschrijving moeten een unieke set zijn.
+
+    """
+
+    if isinstance(exc, ClientError):
+        info = exc.args[0]
+        if info["code"] == "invalid":
+            params = info["invalidParams"]
+
+            # lets add 1) numbers to multiple 2) errors
+            if len(params) == 1:
+                message = format_invalid_param(params[0])
+            else:
+                message = " ".join(
+                    f"{i}) {format_invalid_param(p)}"
+                    for i, p in enumerate(info["invalidParams"], start=1)
+                )
+
+            title = info["title"].rstrip(".")
+            return f"{title}: {message}"
+        else:
+            # TODO support more types
+            return f"{info['title']}"
+    else:
+        return str(exc)
+
+
+def format_invalid_param(param):
+    """
+    Format a single invalid item from format_exception(exc) above
+
+    - hide 'nonFieldErrors' as field name
+    - inject field name before the final dot of the reason for readability of multiple errors
+    """
+    reason = param["reason"]
+    if param["name"] == "nonFieldErrors":
+        return f"{reason}"
+    reason = reason.rstrip(".")
+    return f"{reason} ({param['name']})."

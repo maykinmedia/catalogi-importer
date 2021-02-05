@@ -3,9 +3,15 @@ import json
 from django.test import TestCase
 from django.utils.translation import gettext as _
 
+from zds_client import ClientError
+
 from importer.core.choices import JobLogLevel
 from importer.core.constants import ObjectTypenKeys
-from importer.core.reporting import ImportSession, transform_statistics
+from importer.core.reporting import (
+    ImportSession,
+    format_exception,
+    transform_statistics,
+)
 from importer.core.tests.factories import JobFactory
 
 
@@ -157,4 +163,57 @@ class ResportingUtilsTest(TestCase):
         actual = transform_statistics({})
         self.assertEqual(actual, expected)
         actual = transform_statistics({"data": {}})
+        self.assertEqual(actual, expected)
+
+
+class FormatUtilTest(TestCase):
+    def test_format_exception_single(self):
+        exc = ClientError(
+            {
+                "type": "http://localhost:9000/ref/fouten/ValidationError/",
+                "code": "invalid",
+                "title": "Invalid input.",
+                "status": 400,
+                "detail": "",
+                "instance": "urn:uuid:51e15b8d-98e7-4284-9869-94cbcef00d1f",
+                "invalidParams": [
+                    {
+                        "name": "beginGeldigheid",
+                        "code": "overlap",
+                        "reason": "Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode.",
+                    },
+                ],
+            }
+        )
+
+        actual = format_exception(exc)
+        expected = "Invalid input: Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode (beginGeldigheid)."
+        self.assertEqual(actual, expected)
+
+    def test_format_exception_multiple(self):
+        exc = ClientError(
+            {
+                "type": "http://localhost:9000/ref/fouten/ValidationError/",
+                "code": "invalid",
+                "title": "Invalid input.",
+                "status": 400,
+                "detail": "",
+                "instance": "urn:uuid:51e15b8d-98e7-4284-9869-94cbcef00d1f",
+                "invalidParams": [
+                    {
+                        "name": "beginGeldigheid",
+                        "code": "overlap",
+                        "reason": "Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode.",
+                    },
+                    {
+                        "name": "nonFieldErrors",
+                        "code": "unique",
+                        "reason": "De velden catalogus, omschrijving moeten een unieke set zijn.",
+                    },
+                ],
+            }
+        )
+
+        actual = format_exception(exc)
+        expected = "Invalid input: 1) Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode (beginGeldigheid). 2) De velden catalogus, omschrijving moeten een unieke set zijn."
         self.assertEqual(actual, expected)
