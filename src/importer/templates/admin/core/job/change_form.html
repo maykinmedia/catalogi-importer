@@ -23,14 +23,6 @@
 {% block after_related_objects %}
     {{ block.super }}
     {% include "admin/core/job/joblog_list.html" %}
-
-{#    {% if original.state == 'precheck' %}#}
-        {# TODO remove dev stuff #}
-{#        <h3>Zaaktypen</h3>#}
-{#        <pre style="font-size: 90%;">{{zaaktypen|pprint }}</pre>#}
-{#        <h3>Iotypen</h3>#}
-{#        <pre style="font-size: 90%;">{{iotypen|pprint }}</pre>#}
-{#    {% endif %}#}
 {% endblock %}
 
 {% block admin_change_form_document_ready %}

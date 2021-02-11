@@ -58,12 +58,7 @@ def import_job_task(job_id):
             raise
 
     duration = time.monotonic() - start_time
-    if duration > 300:
-        duration = f"{round(duration/60)} minutes"
-    else:
-        duration = f"{round(duration)} seconds"
-
-    logger.info(f"[Job#{job_id}] task duration {duration}")
+    logger.info(f"[Job#{job_id}] task duration {str(duration)}")
 
 
 def mock_import_job(job):

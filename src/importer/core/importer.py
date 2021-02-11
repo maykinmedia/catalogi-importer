@@ -54,26 +54,17 @@ def precheck_import(job):
     # TODO XML version (1.5?)
     # TODO XML schema
 
-    try:
-        zaaktypen, iotypen = parse_xml(session, tree, job.year)
-    except:
-        session.log_error("Error while extracting data during precheck.")
-        if settings.DEBUG:
-            raise
-    else:
-        counts = extract_counts(zaaktypen, iotypen)
-        for key, count in counts.items():
-            session.set_type_count(key, count, set_total=True)
+    zaaktypen, iotypen = parse_xml(session, tree, job.year)
 
-        for obj in zaaktypen:
-            session.log_info(
-                f"zaaktype {obj['identificatie']} '{obj['omschrijving']}'",
-                ObjectTypenKeys.zaaktypen,
-            )
+    counts = extract_counts(zaaktypen, iotypen)
+    for key, count in counts.items():
+        session.set_type_count(key, count, set_total=True)
 
-        # TODO remove dev stuff
-        session.zaaktypen = zaaktypen
-        session.iotypen = iotypen
+    for obj in zaaktypen:
+        session.log_info(
+            f"zaaktype {obj['identificatie']} '{obj['omschrijving']}'",
+            ObjectTypenKeys.zaaktypen,
+        )
 
     session.flush_counts()
 
@@ -94,32 +85,27 @@ def run_import(job):
         session.log_error("XML parse error.")
         return session
 
-    try:
-        zaaktypen, iotypen = parse_xml(session, tree, job.year)
-    except:
-        session.log_error("Error while extracting data during import.")
-        if settings.DEBUG:
-            raise
-    else:
-        # # keep totals but clear any counts
-        session.reset_counts()
+    zaaktypen, iotypen = parse_xml(session, tree, job.year)
 
-        for obj in zaaktypen:
-            session.log_info(
-                f"zaaktype {obj['identificatie']} '{obj['omschrijving']}'",
-                ObjectTypenKeys.zaaktypen,
-            )
+    # # keep totals but clear any counts
+    session.reset_counts()
 
-        # set expected totals
-        counts = extract_counts(zaaktypen, iotypen)
-        for key, count in counts.items():
-            session.set_type_total(key, count)
-        session.flush_counts()
+    for obj in zaaktypen:
+        session.log_info(
+            f"zaaktype {obj['identificatie']} '{obj['omschrijving']}'",
+            ObjectTypenKeys.zaaktypen,
+        )
 
-        # do actual loading
-        load_data(session, zaaktypen, iotypen, job.catalog.url)
+    # set expected totals
+    counts = extract_counts(zaaktypen, iotypen)
+    for key, count in counts.items():
+        session.set_type_total(key, count)
+    session.flush_counts()
 
-        # TODO more!
+    # do actual loading
+    load_data(session, zaaktypen, iotypen, job.catalog.url)
+
+    # TODO more!
 
     session.flush_counts()
 

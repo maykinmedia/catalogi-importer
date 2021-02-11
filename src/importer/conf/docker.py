@@ -36,7 +36,12 @@ ALLOWED_HOSTS = getenv("ALLOWED_HOSTS", "*", split=True)
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": getenv("CACHE_LOCATION", "redis://redis:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        },
     },
     # https://github.com/jazzband/django-axes/blob/master/docs/configuration.rst#cache-problems
     "axes_cache": {
@@ -64,18 +69,6 @@ if subpath:
 #         'URL': getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200/'),
 #         'INDEX_NAME': 'importer',
 #     },
-# }
-#
-# # Caching
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django_redis.cache.RedisCache',
-#         'LOCATION': getenv('CACHE_LOCATION', 'redis://redis:6379/1'),
-#         'OPTIONS': {
-#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-#             'IGNORE_EXCEPTIONS': True,
-#         }
-#     }
 # }
 
 #

@@ -150,14 +150,7 @@ class Job(models.Model):
     def get_duration_display(self):
         duration = self.get_duration()
         if duration:
-            seconds = duration.total_seconds()
-            if seconds < 300:
-                return f"{round(seconds)}s"
-            else:
-                if seconds % 60 == 0:
-                    return f"{round(seconds / 60)}m"
-                else:
-                    return f"{round(seconds / 60)}m {round(seconds % 60)}s"
+            return str(duration)
         elif self.started_at:
             return ".."
         else:

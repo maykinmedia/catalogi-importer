@@ -1,14 +1,13 @@
 import logging
-import os
 
 from celery import Celery
-from dotenv import load_dotenv
+
+from importer.setup import setup_env
 
 logger = logging.getLogger(__name__)
 
-load_dotenv()
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "importer.conf.dev")
+setup_env()
 
 app = Celery("importer")
 

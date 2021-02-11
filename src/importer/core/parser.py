@@ -414,7 +414,7 @@ def parse_xml(
             except ParserException as exc:
                 session.log_error(
                     f"zaaktype {process.get('id')} resultaattype {resultaattype.get('id')} can't be parsed due to: {exc}",
-                    ObjectTypenKeys.zaaktypen,
+                    ObjectTypenKeys.resultaattypen,
                 )
                 continue
             else:

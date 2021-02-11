@@ -51,9 +51,6 @@ CACHES = {
             "IGNORE_EXCEPTIONS": True,
         },
     },
-    "axes_cache": {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-    },
 }
 
 
