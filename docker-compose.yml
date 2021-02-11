@@ -11,30 +11,39 @@ services:
 
   web:
     build: .
-    environment:
+    environment: &web_env
       - DJANGO_SETTINGS_MODULE=importer.conf.docker
       - SECRET_KEY=${SECRET_KEY:-rv3JcnxW9bTksXHHUYr8NYdhc2h9PuvnVHccz}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CELERY_LOGLEVEL=DEBUG
     ports:
       - 8000:8000
+    volumes:
+      - media:/app/media
+      - private_media:/app/private_media
     depends_on:
       - db
       - redis
+
   redis:
     # NOTE: No persistance storage configured.
     # See: https://hub.docker.com/_/redis/
-    image: redis
+    image: redis:5
     ports:
       - 6379:6379
 
-# See: src/importer/conf/docker.py
-# Optional containers below:
-#  elasticsearch:
-#    # NOTE: No persistance storage configured.
-#    # See: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
-#    image: docker.elastic.co/elasticsearch/elasticsearch:6.2.4
-#    container_name: elasticsearch
-#    environment:
-#      - discovery.type=single-node
-#      - cluster.routing.allocation.disk.threshold_enabled=false
-#    ports:
-#      - 9200:9200
+  celery:
+    build: .
+    environment: *web_env
+    command: /celery_worker.sh
+    volumes:
+      - media:/app/media
+      - private_media:/app/private_media
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  media:
+  private_media:

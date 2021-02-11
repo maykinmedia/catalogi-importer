@@ -59,17 +59,6 @@ if subpath:
     STATIC_URL = f"{FORCE_SCRIPT_NAME}{STATIC_URL}"
     MEDIA_URL = f"{FORCE_SCRIPT_NAME}{MEDIA_URL}"
 
-# See: docker-compose.yml
-# Optional Docker container usage below:
-#
-# # Elasticsearch
-# HAYSTACK_CONNECTIONS = {
-#     'default': {
-#         'ENGINE': 'haystack.backends.elasticsearch2_backend.Elasticsearch2SearchEngine',
-#         'URL': getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200/'),
-#         'INDEX_NAME': 'importer',
-#     },
-# }
 
 #
 # Additional Django settings

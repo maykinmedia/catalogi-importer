@@ -38,11 +38,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /usr/local/lib/python3.7 /usr/local/lib/python3.7
+COPY --from=build /usr/local/bin/celery /usr/local/bin/celery
 COPY --from=build /usr/local/bin/uwsgi /usr/local/bin/uwsgi
 
 # Stage 3.2 - Copy source code
 WORKDIR /app
 COPY ./bin/docker_start.sh /start.sh
+COPY ./bin/celery_worker.sh /celery_worker.sh
 RUN mkdir /app/log /app/config
 
 COPY --from=frontend-build /app/src/importer/static/css /app/src/importer/static/css
@@ -61,9 +63,9 @@ ARG SECRET_KEY=dummy
 RUN python src/manage.py collectstatic --noinput
 
 LABEL org.label-schema.vcs-ref=$COMMIT_HASH \
-      org.label-schema.vcs-url="https://github.com/maykinmedia/importer-api" \
+      org.label-schema.vcs-url="https://github.com/maykinmedia/catalogi-importer" \
       org.label-schema.version=$RELEASE \
-      org.label-schema.name="importer API"
+      org.label-schema.name="Catelogi Importer"
 
 EXPOSE 8000
 CMD ["/start.sh"]
