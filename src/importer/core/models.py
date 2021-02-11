@@ -93,8 +93,8 @@ class Job(models.Model):
         choices=JobState.choices,
         db_index=True,
     )
-    results = JSONField(
-        _("Results"),
+    statistics = JSONField(
+        _("Statistics"),
         default=dict,
         blank=True,
     )
@@ -134,10 +134,10 @@ class Job(models.Model):
         assert level in JobLogLevel.values, f"'{level}' is not a valid {JobLogLevel}"
         self.joblog_set.create(level=level, message=message)
 
-    def set_results(self, results):
-        assert isinstance(results, dict)
-        self.results = results
-        self.save(update_fields=("results",))
+    def set_statistics(self, statistics):
+        assert isinstance(statistics, dict)
+        self.statistics = statistics
+        self.save(update_fields=("statistics",))
 
     def get_duration(self):
         if self.started_at and self.stopped_at:

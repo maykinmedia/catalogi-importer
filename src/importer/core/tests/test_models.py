@@ -68,14 +68,14 @@ class JobTests(TestCase):
         with self.assertRaises(AssertionError):
             job.add_log("bad", "foo")
 
-    def test_set_results(self):
+    def test_set_statistics(self):
         job = JobFactory()
-        self.assertEqual(job.results, dict())
-        self.assertFalse(job.results)
-        job.set_results({"aa": 1, "bb": 2})
+        self.assertEqual(job.statistics, dict())
+        self.assertFalse(job.statistics)
+        job.set_statistics({"aa": 1, "bb": 2})
 
         job = job = Job.objects.get(id=job.id)
-        self.assertEqual(job.results, {"aa": 1, "bb": 2})
+        self.assertEqual(job.statistics, {"aa": 1, "bb": 2})
 
     def test_duration(self):
         with self.subTest("no start"):
@@ -100,7 +100,7 @@ class JobTests(TestCase):
                 stopped_at=datetime(2021, 1, 1, 12, 3, tzinfo=pytz.utc),
             )
             self.assertEqual(job.get_duration(), timedelta(minutes=3))
-            self.assertEqual(job.get_duration_display(), "180s")
+            self.assertEqual(job.get_duration_display(), "0:03:00")
 
         with self.subTest("complete, long"):
             job = JobFactory(
@@ -108,7 +108,7 @@ class JobTests(TestCase):
                 stopped_at=datetime(2021, 1, 1, 12, 10, tzinfo=pytz.utc),
             )
             self.assertEqual(job.get_duration(), timedelta(minutes=10))
-            self.assertEqual(job.get_duration_display(), "10m")
+            self.assertEqual(job.get_duration_display(), "0:10:00")
 
 
 class JobLogTests(TestCase):

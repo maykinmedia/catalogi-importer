@@ -1,18 +1,13 @@
 import os
-from io import BytesIO
 
 from django.contrib import admin
-from django.core.files import File
 from django.core.files.base import ContentFile
-from django.test import TestCase
-from django.utils.translation import gettext as _
 
 from webtest import Upload
 from zgw_consumers.models import Service
 
-from importer.core.admin import CatalogConfigAdmin, transform_statistics
-from importer.core.choices import JobLogLevel, JobState
-from importer.core.constants import ObjectTypenKeys
+from importer.core.admin import CatalogConfigAdmin
+from importer.core.choices import JobState
 from importer.core.models import CatalogConfig, Job, SelectielijstConfig
 from importer.core.tests.base import AdminWebTest
 from importer.core.tests.factories import (
@@ -197,49 +192,3 @@ class JobAdminViewTest(AdminWebTest):
 
         self.assertPyQueryExists(response, ".value-display-table .form-row")
         self.assertPyQueryExists(response, ".joblog-display-table")
-
-
-class JobAdminViewUtilsTest(TestCase):
-    def test_transform_statistics(self):
-        data = {
-            "data": {
-                ObjectTypenKeys.resultaattypen: (
-                    28,
-                    30,
-                    {JobLogLevel.warning: 2, JobLogLevel.error: 1},
-                ),
-                ObjectTypenKeys.informatieobjecttypen: (38, 40, None),
-                ObjectTypenKeys.zaakinformatieobjecttypen: (
-                    48,
-                    50,
-                    {JobLogLevel.warning: 5},
-                ),
-                ObjectTypenKeys.zaaktypen: (1, 3),
-                ObjectTypenKeys.roltypen: (8, 10),
-                ObjectTypenKeys.statustypen: (18, 20),
-            },
-        }
-        expected = [
-            (_("Roltypen"), "8 / 10"),
-            (_("Zaaktypen"), "1 / 3"),
-            (_("Statustypen"), "18 / 20"),
-            (_("Resultaattypen"), "28 / 30 (2 warnings, 1 errors)"),
-            (_("Informatieobjecttypen"), "38 / 40"),
-            (_("Zaakinformatieobjecttypen"), "48 / 50 (5 warnings)"),
-        ]
-        actual = transform_statistics(data)
-        self.assertEqual(actual, expected)
-
-    def test_transform_statistics_empty(self):
-        expected = [
-            (_("Roltypen"), "0 / 0"),
-            (_("Zaaktypen"), "0 / 0"),
-            (_("Statustypen"), "0 / 0"),
-            (_("Resultaattypen"), "0 / 0"),
-            (_("Informatieobjecttypen"), "0 / 0"),
-            (_("Zaakinformatieobjecttypen"), "0 / 0"),
-        ]
-        actual = transform_statistics({})
-        self.assertEqual(actual, expected)
-        actual = transform_statistics({"data": {}})
-        self.assertEqual(actual, expected)

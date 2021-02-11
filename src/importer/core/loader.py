@@ -97,7 +97,7 @@ def create_zaaktype_children(
             continue
         else:
             children.append(child)
-            session.increment_type_count(type_key)
+            session.counter.increment_count(type_key)
 
     return children
 
@@ -167,7 +167,7 @@ def create_zaaktype_informatieobjecttypen(
         ziotype = client.create("zaakinformatieobjecttype", data=ziotype_data)
 
         ziotypen.append(ziotype)
-        session.increment_type_count(ObjectTypenKeys.zaakinformatieobjecttypen)
+        session.counter.increment_count(ObjectTypenKeys.zaakinformatieobjecttypen)
 
     return ziotypen
 
@@ -197,7 +197,7 @@ def load_data(
             continue
         else:
             iotypen.append(iotype)
-            session.increment_type_count(ObjectTypenKeys.informatieobjecttypen)
+            session.counter.increment_count(ObjectTypenKeys.informatieobjecttypen)
 
     session.flush_counts()
 
@@ -215,7 +215,7 @@ def load_data(
             )
             continue
         else:
-            session.increment_type_count(ObjectTypenKeys.zaaktypen)
+            session.counter.increment_count(ObjectTypenKeys.zaaktypen)
 
         # create zaaktype relative objects
         create_zaaktype_children(

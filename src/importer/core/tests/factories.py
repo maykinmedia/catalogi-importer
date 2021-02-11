@@ -43,7 +43,7 @@ class RunningJobFactory(JobFactory):
         lambda obj: obj.created_at + timedelta(minutes=randint(1, 15))
     )
 
-    results = {
+    statistics = {
         "data": {
             ObjectTypenKeys.statustypen: (10, 20, {JobLogLevel.warning: 3}),
             ObjectTypenKeys.roltypen: (
