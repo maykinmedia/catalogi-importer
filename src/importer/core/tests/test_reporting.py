@@ -1,8 +1,10 @@
 import json
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils.translation import gettext as _
 
+from requests import HTTPError
 from zds_client import ClientError
 
 from importer.core.choices import JobLogLevel
@@ -216,4 +218,11 @@ class FormatUtilTest(TestCase):
 
         actual = format_exception(exc)
         expected = "Invalid input: 1) Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode (beginGeldigheid). 2) De velden catalogus, omschrijving moeten een unieke set zijn."
+        self.assertEqual(actual, expected)
+
+    def test_format_generic_error(self):
+        exc = HTTPError("problem")
+
+        actual = format_exception(exc)
+        expected = "problem"
         self.assertEqual(actual, expected)

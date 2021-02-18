@@ -214,6 +214,16 @@ def _format_logstats_dict(info):
 
 def format_exception(exc):
     """
+    Format a readable single-line summary from an Exception, usually a ZGW ClientError for a ValidationError
+    """
+    if isinstance(exc, ClientError):
+        return format_zgw_client_error(exc)
+    else:
+        return str(exc)
+
+
+def format_zgw_client_error(exc):
+    """
     Format a readable single-line summary from an ClientError, usually a ValidationError
 
     ValidationError example:
@@ -242,33 +252,29 @@ def format_exception(exc):
     > Invalid input: 1) Dit zaaktype komt al voor binnen de catalogus en opgegeven geldigheidsperiode (beginGeldigheid). 2) De velden catalogus, omschrijving moeten een unieke set zijn.
 
     """
+    info = exc.args[0]
+    if info["code"] == "invalid":
+        params = info["invalidParams"]
 
-    if isinstance(exc, ClientError):
-        info = exc.args[0]
-        if info["code"] == "invalid":
-            params = info["invalidParams"]
-
-            # lets add 1) numbers to multiple 2) errors
-            if len(params) == 1:
-                message = format_invalid_param(params[0])
-            else:
-                message = " ".join(
-                    f"{i}) {format_invalid_param(p)}"
-                    for i, p in enumerate(info["invalidParams"], start=1)
-                )
-
-            title = info["title"].rstrip(".")
-            return f"{title}: {message}"
+        # lets add 1) numbers to multiple 2) errors
+        if len(params) == 1:
+            message = format_zgw_invalid_param(params[0])
         else:
-            # TODO support more types
-            return f"{info['title']}"
+            message = " ".join(
+                f"{i}) {format_zgw_invalid_param(p)}"
+                for i, p in enumerate(info["invalidParams"], start=1)
+            )
+
+        title = info["title"].rstrip(".")
+        return f"{title}: {message}"
     else:
-        return str(exc)
+        # TODO support more types
+        return f"{info['title']}"
 
 
-def format_invalid_param(param):
+def format_zgw_invalid_param(param):
     """
-    Format a single invalid item from format_exception(exc) above
+    Format a single invalid item from format_zgw_client_error(exc) above
 
     - hide 'nonFieldErrors' as field name
     - inject field name before the final dot of the reason for readability of multiple errors
