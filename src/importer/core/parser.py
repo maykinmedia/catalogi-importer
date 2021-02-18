@@ -242,7 +242,7 @@ def construct_zaaktype_data(
             find(fields, "wettelijke-afdoeningstermijn-eenheid"),
         )
         session.log_info(
-            f"{log_scope} cannot find afdoeningstermijn. It will be set to value from wettelijke-afdoeningstermijn"
+            f"{log_scope} cannot find afdoeningstermijn. It will be set to '{doorlooptijd}' from wettelijke-afdoeningstermijn"
         )
 
     return {
@@ -317,7 +317,7 @@ def construct_statustype_data(
 ) -> dict:
     fields = statustype.find("velden")
     return {
-        "volgnummer": statustype.get("volgnummer"),
+        "volgnummer": int(statustype.get("volgnummer")),
         "omschrijving": find(fields, "naam"),
         "omschrijvingGeneriek": find(fields, "naam-model", False),
         "statustekst": find(fields, "bericht", False),
@@ -366,6 +366,7 @@ def construct_resultaattype_data(
             find(fields, "bewaartermijn", False),
             find(fields, "bewaartermijn-eenheid", False),
         ),
+        # TODO report trimming datumkenmerk
         "brondatumArchiefprocedure": {
             "afleidingswijze": afleidingswijze,
             "datumkenmerk": datumkenmerk[:80],
@@ -411,7 +412,7 @@ def construct_iotype_data(session, log_scope, document: etree.ElementBase) -> di
             VertrouwelijkheidsAanduidingen.values,
             DEFAULT_VERTROUWELIJKHEID,
         ),
-        # begin data whould be set during merging different iotypen later
+        # begin data would be set during merging different iotypen later
         "beginGeldigheid": get_date(find(fields, "actueel-van", False)),
         "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
     }
@@ -427,8 +428,9 @@ def construct_iotype_data(session, log_scope, document: etree.ElementBase) -> di
 def construct_ziotype_data(session, log_scope, document: etree.ElementBase) -> dict:
     fields = document.find("velden")
     return {
+        # TODO warn on trim naam
         "informatieobjecttype_omschrijving": find(fields, "naam")[:80].strip(),
-        "volgnummer": document.get("volgnummer"),
+        "volgnummer": int(document.get("volgnummer")),
         "richting": get_choice_field(
             session,
             f"{log_scope} richting",
