@@ -3,7 +3,7 @@ from typing import List
 from zgw_consumers.client import ZGWClient
 from zgw_consumers.service import get_paginated_results
 
-from .cache import cache
+from importer.utils.cache import cache
 
 
 def get_client() -> ZGWClient:

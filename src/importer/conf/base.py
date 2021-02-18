@@ -40,6 +40,20 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv(
+            "REDIS_URL", "redis://127.0.0.1:6379/1"
+        ),  # NOTE: watch out for multiple projects using the same cache!
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        },
+    },
+}
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -60,6 +74,7 @@ INSTALLED_APPS = [
     # 'django.contrib.humanize',
     # 'django.contrib.sitemaps',
     # External applications.
+    "solo",
     "axes",
     "sniplates",
     "hijack",
@@ -340,6 +355,10 @@ HIJACK_REGISTER_ADMIN = False
 # This is a CSRF-security risk.
 # See: http://django-hijack.readthedocs.io/en/latest/configuration/#allowing-get-method-for-hijack-views
 HIJACK_ALLOW_GET_REQUESTS = True
+
+# Celery
+CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1")
+CELERY_RESULT_BACKEND = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1")
 
 # Sentry SDK
 SENTRY_DSN = os.getenv("SENTRY_DSN")

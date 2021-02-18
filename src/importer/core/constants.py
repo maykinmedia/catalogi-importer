@@ -113,3 +113,16 @@ class RichtingChoices(DjangoChoices):
     inkomend = ChoiceItem("inkomend", _("Inkomend"))
     intern = ChoiceItem("intern", _("Intern"))
     uitgaand = ChoiceItem("uitgaand", _("Uitgaand"))
+
+
+class ObjectTypenKeys(DjangoChoices):
+    """
+    short keys used in results JSON
+    """
+
+    roltypen = ChoiceItem("rt", _("Roltypen"))
+    zaaktypen = ChoiceItem("zt", _("Zaaktypen"))
+    statustypen = ChoiceItem("st", _("Statustypen"))
+    resultaattypen = ChoiceItem("rst", _("Resultaattypen"))
+    informatieobjecttypen = ChoiceItem("iot", _("Informatieobjecttypen"))
+    zaakinformatieobjecttypen = ChoiceItem("ziot", _("Zaakinformatieobjecttypen"))

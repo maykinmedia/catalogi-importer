@@ -76,12 +76,28 @@ class AdminWebTest(WebTest):
                 f"expected exactly {count} but found {pl} matching elements for: {query}"
             )
 
-    def assertRowExistsReadonly(self, response, field_name, text=None):
+    def assertSubmitButtonExists(self, response):
+        self.assertPyQueryExists(response, "input[type='submit']")
+
+    def assertSubmitButtonNotExists(self, response):
+        self.assertPyQueryNotExists(response, "input[type='submit']")
+
+    def assertFormRowReadonly(self, response, field_name, text=None):
         self.assertPyQueryExists(response, f".form-row.field-{field_name} label")
         self.assertPyQueryExists(response, f".form-row.field-{field_name} div.readonly")
         if text is not None:
             elem = response.pyquery(f".form-row.field-{field_name} div.readonly")[0]
             self.assertEqual(str(elem.text).strip(), str(text))
 
-    def assertRowNotExists(self, response, field_name):
+    def assertFormRowNotExists(self, response, field_name):
         self.assertPyQueryNotExists(response, f".form-row.field-{field_name}")
+
+    def assertFormHasNoFields(self, response, allow_fields=None):
+        # check no fields are exposed accidentally
+        form = response.form
+        expect_fields = {"csrfmiddlewaretoken", "_continue", "_submit"}
+        if allow_fields is not None:
+            expect_fields |= set(allow_fields)
+        print(expect_fields)
+        print(set(form.fields.keys()))
+        self.assertEqual(set(), set(form.fields.keys()) - expect_fields)

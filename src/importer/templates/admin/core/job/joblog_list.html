@@ -1,0 +1,47 @@
+{% load i18n admin_urls static admin_modify %}
+{% if joblog_table %}
+    <div class="inline-group joblog-display">
+        <div class="tabular inline-related last-related">
+            <fieldset class="module ">
+                <h2>Job logs</h2>
+
+                {% if joblog_table.rows %}
+                    <table class="joblog-display-table">
+                        <thead>
+                        <tr>
+                            {% if joblog_table.show_timestamp %}
+                            <th class="column-timestamp">Time</th>
+                            {% endif %}
+                            <th class="column-icon"></th>
+                            <th class="column-level">Level</th>
+                            <th class="column-message">Message</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for log in joblog_table.rows %}
+                            <tr class="form-row {% cycle "row1" "row2" %} level-{{ log.level }}">
+                                {% if joblog_table.show_timestamp %}
+                                <td class="field-timestamp" style="width: 9em;">
+                                    <p style="white-space: nowrap;">{{ log.timestamp }}</p>
+                                </td>
+                                {% endif %}
+                                <td class="field-icon" style="width: 2em; text-align: center;">
+                                    <p><span style="font-size:120%;">{{ log.get_level_icon }}</span></p>
+                                </td>
+                                <td class="field-level" style="width: 6em;">
+                                    <p>{{ log.get_level_display }}</p>
+                                </td>
+                                <td class="field-message">
+                                    {{ log.message|linebreaks }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p style="padding: 1em;">{% trans "No records" %}</p>
+                {% endif %}
+            </fieldset>
+        </div>
+    </div>
+{% endif %}

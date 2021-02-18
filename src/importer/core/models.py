@@ -1,3 +1,4 @@
+from django.contrib.postgres.fields import JSONField
 from django.core.validators import (
     FileExtensionValidator,
     MaxValueValidator,
@@ -11,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from solo.models import SingletonModel
 from zgw_consumers.constants import APITypes
 
-from importer.core.choices import JobState
+from importer.core.choices import JobLogLevel, JobState
 from importer.utils.storage import private_storage
 
 
@@ -73,13 +74,11 @@ class Job(models.Model):
         "core.CatalogConfig",
         on_delete=models.PROTECT,
     )
-
     year = models.SmallIntegerField(
         _("Selectielijst year"),
         help_text=_("Year to import to."),
         validators=[MinValueValidator(1000), MaxValueValidator(9999)],
     )
-
     source = models.FileField(
         _("XML File"),
         upload_to=get_job_source_file_name,
@@ -87,15 +86,18 @@ class Job(models.Model):
         validators=[FileExtensionValidator(["xml"])],
         help_text=_("i-Navigator XML export file."),
     )
-
     state = models.CharField(
         _("State"),
         max_length=32,
-        default=JobState.queued,
+        default=JobState.precheck,
         choices=JobState.choices,
         db_index=True,
     )
-
+    statistics = JSONField(
+        _("Statistics"),
+        default=dict,
+        blank=True,
+    )
     created_at = models.DateTimeField(
         _("Job created"), auto_now_add=True, db_index=True
     )
@@ -111,19 +113,81 @@ class Job(models.Model):
         return f"{force_text(self._meta.verbose_name)}#{self.id}"
 
     def mark_running(self):
-        # TODO add checks, lock? (maybe at higher level)
+        # validity is checked at higher level
         self.state = JobState.running
         self.started_at = timezone.now()
         self.save()
 
     def mark_completed(self):
-        # TODO add checks, lock? (maybe at higher level)
+        # validity is checked at higher level
         self.state = JobState.completed
         self.stopped_at = timezone.now()
         self.save()
 
     def mark_error(self):
-        # TODO add checks, lock? (maybe at higher level)
+        # validity is checked at higher level)
         self.state = JobState.error
         self.stopped_at = timezone.now()
         self.save()
+
+    def add_log(self, level, message):
+        assert level in JobLogLevel.values, f"'{level}' is not a valid {JobLogLevel}"
+        self.joblog_set.create(level=level, message=message)
+
+    def set_statistics(self, statistics):
+        assert isinstance(statistics, dict)
+        self.statistics = statistics
+        self.save(update_fields=("statistics",))
+
+    def get_duration(self):
+        if self.started_at and self.stopped_at:
+            return self.stopped_at - self.started_at
+        else:
+            return None
+
+    get_duration.short_description = _("Job Duration")
+
+    def get_duration_display(self):
+        duration = self.get_duration()
+        if duration:
+            return str(duration)
+        elif self.started_at:
+            return ".."
+        else:
+            return "-"
+
+    get_duration_display.short_description = _("Job Duration")
+
+
+class JobLog(models.Model):
+    job = models.ForeignKey(
+        "core.Job",
+        on_delete=models.CASCADE,
+    )
+
+    # TODO we dont need this
+    timestamp = models.DateTimeField(_("Time"), auto_now_add=True, db_index=True)
+
+    level = models.CharField(
+        _("Level"),
+        max_length=32,
+        default=JobLogLevel.info,
+        choices=JobLogLevel.choices,
+        db_index=True,
+    )
+
+    message = models.TextField(_("Message"), default="")
+
+    # TODO we probably want to register more fields, like the sub catalog, object uri etc
+
+    def message_trim_line(self, length=32):
+        return self.message.splitlines()[0][:length]
+
+    message_trim_line.short_description = _("Message")
+    message_trim_line.admin_order_field = "message"
+
+    def get_level_icon(self):
+        return JobLogLevel.get_icon(self.level)
+
+    get_level_icon.short_description = _("Level")
+    get_level_icon.admin_order_field = "level"

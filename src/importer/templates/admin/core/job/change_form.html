@@ -1,0 +1,43 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block after_field_sets %}
+    {{ block.super }}
+    {% if value_table %}
+        <div class="value-display">
+        {% if value_table.title %}<h1>{{ value_table.title }}</h1>{% endif %}
+        <fieldset class="module aligned value-display-table">
+        {% for label, value in value_table.rows %}
+            <div class="form-row">
+                <div>
+                    <label>{{ label }}</label>
+                    <div class="readonly">{{ value }}</div>
+                </div>
+            </div>
+        {% endfor %}
+        </fieldset>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block after_related_objects %}
+    {{ block.super }}
+    {% include "admin/core/job/joblog_list.html" %}
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+    {{ block.super }}
+    {% if original.state == 'running' %}
+    <script type="text/javascript">
+        setTimeout(function() {
+            window.location.reload();
+        }, 5000);
+    </script>
+    {% elif original.state == 'queued' %}
+    <script type="text/javascript">
+        setTimeout(function() {
+            window.location.reload();
+        }, 2500);
+    </script>
+    {% endif %}
+{% endblock %}
