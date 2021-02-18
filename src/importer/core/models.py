@@ -1,3 +1,5 @@
+from urllib.parse import urljoin
+
 from django.contrib.postgres.fields import JSONField
 from django.core.validators import (
     FileExtensionValidator,
@@ -10,7 +12,9 @@ from django.utils.encoding import force_text
 from django.utils.translation import gettext_lazy as _
 
 from solo.models import SingletonModel
+from zds_client import get_operation_url
 from zgw_consumers.constants import APITypes
+from zgw_consumers.models import Service
 
 from importer.core.choices import JobLogLevel, JobState
 from importer.utils.storage import private_storage
@@ -40,24 +44,36 @@ class SelectielijstConfig(SingletonModel):
 
 
 class CatalogConfig(models.Model):
-    url = models.URLField(
-        _("Catalog URL"),
-        max_length=255,
+    service = models.ForeignKey(
+        "zgw_consumers.Service",
+        on_delete=models.PROTECT,
+        limit_choices_to={"api_type": APITypes.ztc},
+    )
+    uuid = models.UUIDField(
+        _("UUID"),
+        help_text="Unieke resource identifier (UUID4)",
     )
     label = models.CharField(
         _("Label"),
         max_length=255,
-        blank=True,
         help_text=_("Human readable label."),
     )
 
     class Meta:
         verbose_name = _("Catalog configuration")
 
+    @property
+    def url(self):
+        # TODO move this elsewhere? we don't want hidden IO in the models
+        client = self.service.build_client()
+        path = get_operation_url(
+            client.schema, "catalogus_read", base_url=client.base_url, uuid=self.uuid
+        )
+        url = urljoin(client.base_url, path)
+        return url
+
     def __str__(self):
-        if self.label:
-            return f"{self.label} ({self.url})"
-        return self.url
+        return self.label
 
 
 def get_job_source_file_name(instance, filename):
