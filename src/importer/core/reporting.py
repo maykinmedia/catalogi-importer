@@ -27,6 +27,10 @@ class ImportSession:
         self.counter = TypeCounter()
         self._clients = dict()
 
+    @property
+    def catalogus_url(self):
+        return self.job.catalog.url
+
     def client_from_url(self, url) -> ZGWClient:
         if url in self._clients:
             return self._clients[url]

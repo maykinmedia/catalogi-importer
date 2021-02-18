@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 from datetime import date
 from typing import Dict, List
@@ -16,15 +17,16 @@ class LoaderException(Exception):
     pass
 
 
-def retrieve_zaaktype(client, log_scope, catalogus, identificatie):
+def retrieve_zaaktype(session, log_scope: str, identificatie: str):
     """
     to retrieve a zaaktype by identificatie we need to do a list search
     """
+    client = session.client_from_url(session.catalogus_url)
     result = client.list(
         "zaaktype",
         query_params={
             "identificatie": identificatie,
-            "catalogus": catalogus,
+            "catalogus": session.catalogus_url,
             "status": "alles",
         },
     )
@@ -37,18 +39,16 @@ def retrieve_zaaktype(client, log_scope, catalogus, identificatie):
         return None
 
 
-def update_zaaktype(session, zaaktype_data, catalogus):
+def update_zaaktype(session, zaaktype_data: dict):
     """
     update/create a single zaaktype (closing if published)
     """
-    client = session.client_from_url(catalogus)
+    client = session.client_from_url(session.catalogus_url)
     log_scope = f"zaaktype {zaaktype_data['identificatie']}"
 
-    zaaktype_data["catalogus"] = catalogus
+    zaaktype_data["catalogus"] = session.catalogus_url
 
-    remote = retrieve_zaaktype(
-        client, log_scope, catalogus, zaaktype_data["identificatie"]
-    )
+    remote = retrieve_zaaktype(session, log_scope, zaaktype_data["identificatie"])
     if not remote:
         # create new
         zaaktype = client.create("zaaktype", data=zaaktype_data)
@@ -56,7 +56,7 @@ def update_zaaktype(session, zaaktype_data, catalogus):
     elif remote["concept"]:
         # update old resource which is still in concept
         zaaktype = client.update("zaaktype", zaaktype_data, url=remote["url"])
-        session.log_info(f"{log_scope} updated existing concept: {remote['url']}")
+        session.log_info(f"{log_scope} updated existing concept")
     else:
         # close old resource with start-date of the new resource
         client.partial_update(
@@ -74,7 +74,7 @@ def update_zaaktype(session, zaaktype_data, catalogus):
     return zaaktype
 
 
-def update_informatieobjecttypen(session, iotypen_data, catalogus):
+def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     """
     update/create list of informatieobjecttypen
 
@@ -83,11 +83,11 @@ def update_informatieobjecttypen(session, iotypen_data, catalogus):
     2) fetch existing resources and create lookup map to match for update/create (API can't search)
     3) run the update/create logic on all items
     """
-    client = session.client_from_url(catalogus)
+    client = session.client_from_url(session.catalogus_url)
 
     # pre-process and backfill
     for iotype_data in iotypen_data:
-        iotype_data["catalogus"] = catalogus
+        iotype_data["catalogus"] = session.catalogus_url
         if not iotype_data["beginGeldigheid"]:
             today = date.today().isoformat()
             iotype_data["beginGeldigheid"] = today
@@ -99,7 +99,7 @@ def update_informatieobjecttypen(session, iotypen_data, catalogus):
     remote_list = get_paginated_results(
         client,
         "informatieobjecttype",
-        query_params={"catalogus": catalogus, "status": "alles"},
+        query_params={"catalogus": session.catalogus_url, "status": "alles"},
     )
     remote_map = {iotype["omschrijving"]: iotype for iotype in remote_list}
 
@@ -118,9 +118,7 @@ def update_informatieobjecttypen(session, iotypen_data, catalogus):
                 iotype = client.update(
                     "informatieobjecttype", iotype_data, url=remote["url"]
                 )
-                session.log_info(
-                    f"{log_scope} updated existing concept: {remote['url']}"
-                )
+                session.log_info(f"{log_scope} updated existing concept")
             else:
                 # close old resource with start-date of the new resource
                 client.partial_update(
@@ -150,7 +148,7 @@ def update_informatieobjecttypen(session, iotypen_data, catalogus):
 
 def update_zaaktype_children(
     session,
-    log_scope,
+    log_scope: str,
     children_data: List[dict],
     zaaktype: dict,
     resource: str,
@@ -202,7 +200,7 @@ def update_zaaktype_children(
 
 def update_zaaktype_informatieobjecttypen(
     session,
-    log_scope,
+    log_scope: str,
     ziotypen_data: List[dict],
     iotypen_urls: Dict[str, str],
     zaaktype: dict,
@@ -215,7 +213,7 @@ def update_zaaktype_informatieobjecttypen(
         ziotype_data["informatieobjecttype"] = iotypen_urls[iotype_omschriving]
         ziotype_data["zaaktype"] = zaaktype["url"]
 
-    # reuse generic
+    # reuse generic children function
     return update_zaaktype_children(
         session,
         log_scope,
@@ -231,13 +229,12 @@ def load_data(
     session,
     zaaktypen_data: List[dict],
     iotypen_data: List[dict],
-    catalogus: str,
 ):
     """
     load data to catalog
     """
     try:
-        iotypen = update_informatieobjecttypen(session, iotypen_data, catalogus)
+        iotypen = update_informatieobjecttypen(session, iotypen_data)
     except (ClientError, HTTPError) as exc:
         session.log_error(
             f"informatieobjecttypen can't be created: {format_exception(exc)}",
@@ -253,7 +250,7 @@ def load_data(
 
         children = zaaktype_data.pop("_children")
         try:
-            zaaktype = update_zaaktype(session, zaaktype_data, catalogus)
+            zaaktype = update_zaaktype(session, zaaktype_data)
         except (ClientError, HTTPError) as exc:
             session.log_error(
                 f"{log_scope} can't be created: {format_exception(exc)}",

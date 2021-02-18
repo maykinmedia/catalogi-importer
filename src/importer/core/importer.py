@@ -87,7 +87,7 @@ def run_import(job):
     session.log_info("End of precheck, start loading..")
 
     # do actual loading
-    load_data(session, zaaktypen, iotypen, job.catalog.url)
+    load_data(session, zaaktypen, iotypen)
 
     session.flush_counts()
 
