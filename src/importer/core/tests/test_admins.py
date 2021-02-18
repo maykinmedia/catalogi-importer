@@ -1,12 +1,8 @@
-import os
-
-from django.contrib import admin
 from django.core.files.base import ContentFile
 
+import requests_mock
 from webtest import Upload
-from zgw_consumers.models import Service
 
-from importer.core.admin import CatalogConfigAdmin
 from importer.core.choices import JobState
 from importer.core.models import CatalogConfig, Job, SelectielijstConfig
 from importer.core.tests.base import AdminWebTest
@@ -20,13 +16,24 @@ from importer.core.tests.factories import (
     RunningJobFactory,
 )
 
+catalog_response = {
+    "url": "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
+    "domein": "ABCDE",
+    "rsin": "407287449",
+    "contactpersoonBeheerNaam": "Foo",
+    "contactpersoonBeheerTelefoonnummer": "0612345678",
+    "contactpersoonBeheerEmailadres": "user@example.com",
+    "zaaktypen": [],
+    "besluittypen": [],
+    "informatieobjecttypen": [],
+}
+
 
 class SelectielijstAdminViewTest(AdminWebTest):
     def test_list_view(self):
         self.assertAdminChangeList(SelectielijstConfig, check_search=False)
 
     def test_change_view(self):
-        catalog = SelectielijstConfig.objects.create()
         self.app.get(self.reverse_change_url(SelectielijstConfig))
 
 
@@ -37,26 +44,35 @@ class CatalogConfigAdminViewTest(AdminWebTest):
     def test_add_view(self):
         self.app.get(self.reverse_add_url(CatalogConfig))
 
-    def test_change_view(self):
-        catalog = CatalogConfigFactory()
-        self.app.get(self.reverse_change_url(catalog))
+    @requests_mock.Mocker()
+    def test_change_view(self, m):
+        # this matches the factories
+        m.get(
+            "http://test/api/schema.yaml",
+            content=self.get_test_data("openzaak-openapi.yaml"),
+        )
+        m.get(
+            "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
+            json=catalog_response,
+        )
+        catalog = CatalogConfigFactory(uuid="7c0e6595-adbe-45b4-b092-31ba75c7dd74")
+        response = self.app.get(self.reverse_change_url(catalog))
 
-    def test_has_credentials_helper(self):
-        catalog = CatalogConfigFactory(url="https://foo/api/catalog")
-        model_admin = CatalogConfigAdmin(CatalogConfig, admin.site)
+        # resubmit
+        form = response.form
+        form.submit().follow()
+        catalog.refresh_from_db()
 
-        self.assertFalse(model_admin.has_credentials(catalog))
-
-        # add matching Service and check again
-        Service.objects.create(api_root="https://foo/api/")
-        self.assertTrue(model_admin.has_credentials(catalog))
+        # verify we reversed the URL from the service and schema
+        self.assertEqual(
+            catalog.url,
+            "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
+        )
+        self.assertEqual(catalog._cached_rsin, "407287449")
+        self.assertEqual(catalog._cached_domein, "ABCDE")
 
 
 class JobAdminViewTest(AdminWebTest):
-    def get_test_data(self, file, mode="rb"):
-        with open(os.path.join(os.path.dirname(__file__), "data", file), mode) as f:
-            return f.read()
-
     def test_list_view(self):
         self.assertAdminChangeList(Job, check_search=False)
 
@@ -68,13 +84,13 @@ class JobAdminViewTest(AdminWebTest):
 
         form = response.form
         form["catalog"].select(value=catalog.id)
-        form["year"] = 2021
+        form["year"] = 2020
         form["source"] = Upload("export.xml", xml_data, "text/xml")
 
         response = form.submit()
 
         job = Job.objects.get()
-        self.assertEqual(job.year, 2021)
+        self.assertEqual(job.year, 2020)
         self.assertEqual(job.catalog, catalog)
         self.assertEqual(job.state, JobState.precheck)
         self.assertEqual(job.source.read(), xml_data)
@@ -96,7 +112,7 @@ class JobAdminViewTest(AdminWebTest):
 
     def test_change_precheck(self):
         job = JobFactory()
-        job.source.save("foo.xml", ContentFile(self.get_test_data("minimal.xml")))
+        job.source.save("foo.xml", ContentFile(self.get_test_data("example.xml")))
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode

@@ -1,8 +1,12 @@
+import os
+
 from django.urls import reverse
 
 from django_webtest import WebTest
 
 from importer.accounts.tests.factories import SuperUserFactory
+from importer.core.models import SelectielijstConfig
+from importer.core.tests.factories import ZGWServiceFactory
 
 
 class AdminWebTest(WebTest):
@@ -10,6 +14,17 @@ class AdminWebTest(WebTest):
         super().setUp()
         self.user = SuperUserFactory()
         self.app.set_user(self.user)
+        service = ZGWServiceFactory(
+            api_root="https://selectielijst.openzaak.nl/api/v1/",
+            oas="https://selectielijst.openzaak.nl/api/v1/schema/openapi.yaml",
+        )
+        selection = SelectielijstConfig.get_solo()
+        selection.service = service
+        selection.save()
+
+    def get_test_data(self, file, mode="rb"):
+        with open(os.path.join(os.path.dirname(__file__), "data", file), mode) as f:
+            return f.read()
 
     def reverse_list_url(self, model_class):
         return reverse(

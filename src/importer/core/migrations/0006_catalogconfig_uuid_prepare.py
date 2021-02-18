@@ -13,15 +13,6 @@ def clear_catalogs(apps, schema_editor):
     Catalog.objects.all().delete()
 
 
-def ensure_zgw_service(apps, schema_editor):
-    """
-    we want to add a non-nullable field to existing model so make sure we always have a record for the one-time default
-    """
-    Service = apps.get_model("zgw_consumers", "Service")
-    if not Service.objects.filter(id=1).exists():
-        Service.objects.create(id=1, label="Dummy Placeholder")
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("zgw_consumers", "0012_auto_20210104_1039"),
@@ -30,5 +21,4 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(clear_catalogs, clear_catalogs),
-        migrations.RunPython(ensure_zgw_service, migrations.RunPython.noop),
     ]

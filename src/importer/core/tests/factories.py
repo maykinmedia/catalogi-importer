@@ -5,14 +5,28 @@ from django.utils import timezone
 
 import factory
 import pytz
+from zgw_consumers.constants import APITypes
+from zgw_consumers.models import Service
 
 from importer.core.choices import JobLogLevel, JobState
 from importer.core.constants import ObjectTypenKeys
 from importer.core.models import CatalogConfig, Job, JobLog
 
 
+class ZGWServiceFactory(factory.django.DjangoModelFactory):
+    label = factory.Faker("words")
+    api_root = "http://test/api/"
+    oas = "http://test/api/schema.yaml"
+    api_type = APITypes.ztc
+
+    class Meta:
+        model = Service
+        django_get_or_create = ("api_root",)
+
+
 class CatalogConfigFactory(factory.django.DjangoModelFactory):
-    url = factory.Faker("url")
+    uuid = factory.Faker("uuid4")
+    service = factory.SubFactory(ZGWServiceFactory)
     label = factory.Faker("words")
 
     class Meta:
@@ -21,8 +35,9 @@ class CatalogConfigFactory(factory.django.DjangoModelFactory):
 
 class JobFactory(factory.django.DjangoModelFactory):
     catalog = factory.SubFactory(CatalogConfigFactory)
+    # TODO source should be a factory.FileField
     source = factory.Faker("file_name", category="text", extension="xml")
-    year = factory.Faker("year")
+    year = 2020
     state = JobState.precheck
 
     created_at = factory.Faker(

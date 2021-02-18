@@ -29,22 +29,20 @@ class CatalogConfigAdmin(admin.ModelAdmin):
         "service",
         "uuid",
         "label",
-        "url_fmt",
+        "_cached_domein",
+        "_cached_rsin",
     ]
     list_display = [
         "label",
         "uuid",
         "service",
+        "_cached_domein",
+        "_cached_rsin",
     ]
-
     readonly_fields = [
-        "url_fmt",
+        "_cached_domein",
+        "_cached_rsin",
     ]
-
-    def url_fmt(self, obj):
-        return format_html('<a href="{url}">{url}</a>', url=obj.url)
-
-    url_fmt.short_description = "URL"
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
