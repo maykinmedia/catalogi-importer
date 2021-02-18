@@ -7,6 +7,7 @@ from zgw_consumers.models import Service
 from zgw_consumers.service import get_paginated_results
 
 from importer.core.constants import ObjectTypenKeys
+from importer.core.reporting import format_exception
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def force_delete_iotypen(session, catalogus: str, iotypen_data: List[dict]):
             client.delete("informatieobjecttype", url=iotype["url"])
         except ClientError as exc:
             session.log_warning(
-                f"informatieobjecttype {iotype['url']} can't be deleted: {exc}",
+                f"informatieobjecttype '{iotype['url']}' can't be deleted: {format_exception(exc)}",
                 ObjectTypenKeys.informatieobjecttypen,
             )
             continue
@@ -70,14 +71,19 @@ def force_delete_zaaktypen(session, catalogus: str, zaaktypen_data: List[dict]):
             client.delete("zaaktype", url=zaaktype["url"])
         except ClientError as exc:
             session.log_warning(
-                f"zaaktype {zaaktype['url']} can't be deleted: {exc}",
+                f"zaaktype '{zaaktype['url']}' can't be deleted: {format_exception(exc)}",
                 ObjectTypenKeys.zaaktypen,
             )
             continue
 
 
 def create_zaaktype_children(
-    session, children_data: List[dict], zaaktype: dict, resource: str, type_key: str
+    session,
+    log_scope,
+    children_data: List[dict],
+    zaaktype: dict,
+    resource: str,
+    type_key: str,
 ):
     zaaktype_url = zaaktype["url"]
     client = client_from_url(zaaktype_url)
@@ -91,7 +97,7 @@ def create_zaaktype_children(
             child = client.create(resource, data=child_data)
         except ClientError as exc:
             session.log_warning(
-                f"zaaktype {zaaktype['identificatie']} {resource} {child_data.get('omschrijving')} can't be created: {exc}",
+                f"{log_scope} {resource} '{child_data.get('omschrijving')}' can't be created: {format_exception(exc)}",
                 type_key,
             )
             continue
@@ -102,24 +108,13 @@ def create_zaaktype_children(
     return children
 
 
-def create_resultaattypen(session, resultaattypen_data: List[dict], zaaktype: dict):
-    for resultaattype_data in resultaattypen_data:
-        brondatum_params = resultaattype_data["brondatumArchiefprocedure"]
-        if brondatum_params["afleidingswijze"] == "ander_datumkenmerk":
-            brondatum_params["objecttype"] = "overige"
-            brondatum_params["registratie"] = "TODO"
-            session.log_info(
-                f"resultaattype {resultaattype_data['omschrijving']} doesn't have "
-                f"brondatumArchiefprocedure.objecttype. It's set as 'overige'",
-                ObjectTypenKeys.resultaattypen,
-            )
-            session.log_info(
-                f"resultaattype {resultaattype_data['omschrijving']} doesn't have "
-                f"brondatumArchiefprocedure.registratie. It's set as 'TODO'",
-                ObjectTypenKeys.resultaattypen,
-            )
+def create_resultaattypen(
+    session, log_scope, resultaattypen_data: List[dict], zaaktype: dict
+):
+    # TODO verify we still have the logs for brondatumArchiefprocedure
     return create_zaaktype_children(
         session,
+        log_scope,
         resultaattypen_data,
         zaaktype,
         "resultaattype",
@@ -140,12 +135,11 @@ def create_informatieobjecttype(session, iotype_data, catalogus, client=None):
     client = client or client_from_url(catalogus)
 
     iotype_data["catalogus"] = catalogus
-    # TODO this should be moved to parse/precheck?
     if not iotype_data["beginGeldigheid"]:
         today = date.today().isoformat()
         iotype_data["beginGeldigheid"] = today
         session.log_warning(
-            f"iotype {iotype_data['omschrijving']} doesn't have beginGeldigheid. It's set as {today}"
+            f"iotype '{iotype_data['omschrijving']}' doesn't have beginGeldigheid. It's set as {today}"
         )
 
     iotype = client.create("informatieobjecttype", data=iotype_data)
@@ -178,7 +172,6 @@ def load_data(
     iotypen_data: List[dict],
     catalogus: str,
 ):
-    print(catalogus)
     # if force:
     #     force_delete_iotypen(catalogus, iotypen_data)
     #     force_delete_zaaktypen(catalogus, zaaktypen_data)
@@ -191,7 +184,7 @@ def load_data(
             iotype = create_informatieobjecttype(session, iotype_data, catalogus)
         except ClientError as exc:
             session.log_warning(
-                f"informatieobjecttype {iotype_data['omschrijving']} can't be created: {exc}",
+                f"informatieobjecttype '{iotype_data['omschrijving']}' can't be created: {format_exception(exc)}",
                 ObjectTypenKeys.informatieobjecttypen,
             )
             continue
@@ -204,31 +197,47 @@ def load_data(
     iotypen_urls = {iotype["omschrijving"]: iotype["url"] for iotype in iotypen}
 
     for zaaktype_data in zaaktypen_data:
-        children = zaaktype_data.pop("_children")
+        log_scope = f"zaaktype {zaaktype_data['identificatie']}:"
 
+        children = zaaktype_data.pop("_children")
         try:
             zaaktype = create_zaaktype(session, zaaktype_data, catalogus)
         except ClientError as exc:
             session.log_warning(
-                f"zaaktype {zaaktype_data['identificatie']} can't be created: {exc}",
+                f"{log_scope} can't be created: {format_exception(exc)}",
                 ObjectTypenKeys.zaaktypen,
             )
             continue
         else:
             session.counter.increment_count(ObjectTypenKeys.zaaktypen)
+            session.flush_counts()
+
+        # TODO catch/log ClientErrors on sub resources
 
         # create zaaktype relative objects
         create_zaaktype_children(
-            session, children["roltypen"], zaaktype, "roltype", ObjectTypenKeys.roltypen
+            session,
+            log_scope,
+            children["roltypen"],
+            zaaktype,
+            "roltype",
+            ObjectTypenKeys.roltypen,
         )
+        session.flush_counts()
+
         create_zaaktype_children(
             session,
+            log_scope,
             children["statustypen"],
             zaaktype,
             "statustype",
             ObjectTypenKeys.statustypen,
         )
-        create_resultaattypen(session, children["resultaattypen"], zaaktype)
+        session.flush_counts()
+
+        create_resultaattypen(session, log_scope, children["resultaattypen"], zaaktype)
+        session.flush_counts()
+
         create_zaaktype_informatieobjecttypen(
             session, children["zaakinformatieobjecttypen"], iotypen_urls, zaaktype
         )

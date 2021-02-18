@@ -60,8 +60,6 @@ def precheck_import(job):
             ObjectTypenKeys.zaaktypen,
         )
 
-    session.flush_counts()
-
     return session
 
 
@@ -85,6 +83,8 @@ def run_import(job):
     counts = extract_counts(zaaktypen, iotypen)
     session.counter.set_total_from_dict(counts)
     session.flush_counts()
+
+    session.log_info("End of precheck, start loading..")
 
     # do actual loading
     load_data(session, zaaktypen, iotypen, job.catalog.url)

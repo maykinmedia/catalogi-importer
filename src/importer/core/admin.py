@@ -147,7 +147,7 @@ class JobAdmin(admin.ModelAdmin):
             return fields
 
     def get_stopped_joblogs(self, job):
-        return job.joblog_set.order_by("-timestamp")
+        return job.joblog_set.order_by("pk")
 
     def change_view(self, request, object_id, form_url="", context=None):
         # TODO do we really have to retrieve this ourselves?

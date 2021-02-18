@@ -3,4 +3,4 @@
 . ../env/bin/activate
 
 # TODO add monitoring, beat, concurrency
-exec celery -A importer worker -l info -o fair
+exec celery -A importer worker -l info -O fair
