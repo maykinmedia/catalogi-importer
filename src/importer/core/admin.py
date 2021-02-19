@@ -26,31 +26,23 @@ class SelectielijstConfigAdmin(SingletonModelAdmin):
 @admin.register(CatalogConfig)
 class CatalogConfigAdmin(admin.ModelAdmin):
     fields = [
-        "url",
+        "service",
+        "uuid",
         "label",
+        "_cached_domein",
+        "_cached_rsin",
     ]
     list_display = [
-        "__str__",
-        "has_credentials",
+        "label",
+        "uuid",
+        "service",
+        "_cached_domein",
+        "_cached_rsin",
     ]
     readonly_fields = [
-        "has_credentials",
+        "_cached_domein",
+        "_cached_rsin",
     ]
-
-    def get_fields(self, request, catalog=None):
-        fields = super().get_fields(request, catalog)
-        if not catalog:
-            return fields
-        else:
-            return fields + [
-                "has_credentials",
-            ]
-
-    def has_credentials(self, catalog):
-        return Service.get_service(catalog.url) is not None
-
-    has_credentials.short_description = _("ZGW Service configured")
-    has_credentials.boolean = True
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser

@@ -1,4 +1,7 @@
+from urllib.parse import urljoin
+
 from django.contrib.postgres.fields import JSONField
+from django.core.exceptions import ValidationError
 from django.core.validators import (
     FileExtensionValidator,
     MaxValueValidator,
@@ -9,8 +12,11 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.translation import gettext_lazy as _
 
+from requests.exceptions import ConnectionError
 from solo.models import SingletonModel
+from zds_client import ClientError, get_operation_url
 from zgw_consumers.constants import APITypes
+from zgw_consumers.models import Service
 
 from importer.core.choices import JobLogLevel, JobState
 from importer.utils.storage import private_storage
@@ -40,24 +46,74 @@ class SelectielijstConfig(SingletonModel):
 
 
 class CatalogConfig(models.Model):
-    url = models.URLField(
-        _("Catalog URL"),
-        max_length=255,
+    service = models.ForeignKey(
+        "zgw_consumers.Service",
+        on_delete=models.PROTECT,
+        limit_choices_to={"api_type": APITypes.ztc},
+    )
+    uuid = models.UUIDField(
+        _("UUID"),
+        help_text=_("The UUID of the catalog in the Catalog API"),
     )
     label = models.CharField(
         _("Label"),
         max_length=255,
-        blank=True,
         help_text=_("Human readable label."),
+    )
+    url = models.URLField(
+        _("Cached URL"),
+        max_length=255,
+        blank=True,
+        editable=False,
+    )
+    _cached_domein = models.CharField(
+        _("domein"),
+        max_length=5,
+        blank=True,
+        editable=False,
+    )
+    _cached_rsin = models.CharField(
+        _("rsin"),
+        max_length=9,
+        blank=True,
+        editable=False,
     )
 
     class Meta:
         verbose_name = _("Catalog configuration")
 
+    def clean(self):
+        super().clean()
+
+        try:
+            client = self.service.build_client()
+            path = get_operation_url(
+                client.schema,
+                "catalogus_read",
+                base_url=client.base_url,
+                uuid=self.uuid,
+            )
+            url = urljoin(client.base_url, path)
+            catalog = client.retrieve("catalogus", url=url)
+        except ConnectionError:
+            raise ValidationError(
+                _("Cannot verify Catalog: check the Service is configured correctly"),
+                code="invalid",
+            )
+        except ClientError:
+            raise ValidationError(
+                _(
+                    "Cannot verify Catalog: check UUID is valid and exists in the selected service"
+                ),
+                code="invalid",
+            )
+        else:
+            self.url = url
+            self._cached_rsin = catalog["rsin"]
+            self._cached_domein = catalog["domein"]
+
     def __str__(self):
-        if self.label:
-            return f"{self.label} ({self.url})"
-        return self.url
+        return self.label
 
 
 def get_job_source_file_name(instance, filename):
