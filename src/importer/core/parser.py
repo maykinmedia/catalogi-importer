@@ -23,7 +23,7 @@ from .selectielijst import (
 
 DEFAULT_VERTROUWELIJKHEID = VertrouwelijkheidsAanduidingen.openbaar
 DEFAULT_ROL_OMSCHRIVING = RolOmschrijving.adviseur
-DEFAULT_ARCHIEFNOMINATIE = Archiefnominatie.vernietigen
+DEFAULT_ARCHIEFNOMINATIE = Archiefnominatie.blijvend_bewaren
 DEFAULT_AFLEIDINGSWIJZE = BrondatumArchiefprocedureAfleidingswijze.afgehandeld
 DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN = "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/50060769-96b3-4993-ae6a-35ae5fd14604"
 DEFAULT_HANDELING_INITIATOR = "n.v.t."
@@ -96,13 +96,20 @@ def quote_join(seq):
     return ", ".join(sorted(f"'{v}'" for v in seq))
 
 
-def get_choice_field(session, log_scope, value: str, choices: dict, default="") -> str:
+def get_choice_field(
+    session, log_scope, value: str, choices: dict, default="", required=False
+) -> str:
     formatted_value = value.lower().replace(" ", "_")
     if formatted_value in choices:
         return formatted_value
 
     if not value:
-        session.log_info(f"{log_scope} not defined. It will be set as '{default}'")
+        if required:
+            session.log_error(
+                f"{log_scope} not defined but marked as required. If continued, this will be set as '{default}'"
+            )
+        else:
+            session.log_info(f"{log_scope} not defined. It will be set as '{default}'")
     else:
         session.log_warning(
             f"{log_scope} cannot find '{formatted_value}' in options {quote_join(choices)}. It will be set as '{default}'"
@@ -232,18 +239,31 @@ def construct_zaaktype_data(
         DEFAULT_HANDELING_BEHANDELAAR,
     )
 
+    servicenorm = get_duration(
+        find(fields, "afdoeningstermijn"),
+        find(fields, "afdoeningstermijn-eenheid"),
+    )
     doorlooptijd = get_duration(
-        find(fields, "afdoeningstermijn", False),
-        find(fields, "afdoeningstermijn-eenheid", False),
+        find(fields, "wettelijke-afdoeningstermijn", False),
+        find(fields, "wettelijke-afdoeningstermijn-eenheid", False),
     )
     if not doorlooptijd:
         doorlooptijd = get_duration(
-            find(fields, "wettelijke-afdoeningstermijn"),
-            find(fields, "wettelijke-afdoeningstermijn-eenheid"),
+            find(fields, "afdoeningstermijn"),
+            find(fields, "afdoeningstermijn-eenheid"),
         )
-        session.log_info(
-            f"{log_scope} cannot find afdoeningstermijn. It will be set to '{doorlooptijd}' from wettelijke-afdoeningstermijn"
+        session.log_warning(
+            f"{log_scope} cannot find wettelijke-afdoeningstermijn so doorlooptijd used afdoeningstermijn '{doorlooptijd}' instead of "
         )
+
+    # FIXME cam't be set without verlengingstermijn field
+    verlengingMogelijk = get_boolean(find(fields, "beroep-mogelijk"))
+    if verlengingMogelijk:
+        session.log_error(
+            f"{log_scope} verlengingMogelijk is set but we don't have a source for verlengingstermijn"
+        )
+        # set to false to complete
+        verlengingMogelijk = False
 
     return {
         "identificatie": process.get("id"),
@@ -254,7 +274,8 @@ def construct_zaaktype_data(
             f"{log_scope} vertrouwelijkheidaanduiding",
             find(fields, "vertrouwelijkheid", False),
             VertrouwelijkheidsAanduidingen.values,
-            DEFAULT_VERTROUWELIJKHEID,
+            default=DEFAULT_VERTROUWELIJKHEID,
+            required=True,
         ),
         "doel": find(fields, "naam"),
         "aanleiding": aanleiding,
@@ -267,9 +288,8 @@ def construct_zaaktype_data(
         "opschortingEnAanhoudingMogelijk": get_boolean(
             find(fields, "aanhouden-mogelijk", False)
         ),
-        # FIXME cam't be set without verlengingstermijn field
-        # "verlengingMogelijk": get_boolean(find(fields, "beroep-mogelijk")),
-        "verlengingMogelijk": False,
+        "verlengingMogelijk": verlengingMogelijk,
+        # "verlengingstermijn": None, # FIXME no source
         "trefwoorden": get_array(
             find(fields, "lokale-trefwoorden", False)
         ),  # always empty?
@@ -285,14 +305,13 @@ def construct_zaaktype_data(
         "beginGeldigheid": get_date(find(fields, "actueel-van")),
         "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
         "versiedatum": get_date(find(fields, "actueel-van")),
+        "servicenorm": servicenorm,
         # TODO no mapping for required field
         "productenOfDiensten": [],
         "gerelateerdeZaaktypen": [],
         "besluittypen": [],
         # TODO no mapping for non-required fields
-        # "verlengingstermijn": None,
         # "deelzaaktypen": [],
-        # "servicenorm": None,
     }
 
 
