@@ -5,7 +5,7 @@ from lxml.etree import LxmlError
 from zds_client import ClientError
 
 from importer.core.constants import ObjectTypenKeys
-from importer.core.loader import client_from_url, load_data
+from importer.core.loader import load_data
 from importer.core.parser import extract_counts, parse_xml
 from importer.core.reporting import ImportSession
 
@@ -18,7 +18,7 @@ def check_job(job, session):
     """
     # TODO verify and print a nice error for SelectieLijst and its get_client()
     try:
-        client = client_from_url(job.catalog.url)
+        client = session.client_from_url(job.catalog.url)
     except ClientError as exc:
         session.log_error(str(exc))
         return False
@@ -87,9 +87,7 @@ def run_import(job):
     session.log_info("End of precheck, start loading..")
 
     # do actual loading
-    load_data(session, zaaktypen, iotypen, job.catalog.url)
-
-    # TODO more!
+    load_data(session, zaaktypen, iotypen)
 
     session.flush_counts()
 

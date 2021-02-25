@@ -1,9 +1,10 @@
+import dataclasses
 import logging
 from datetime import date
 from typing import Dict, List
 
+from requests import HTTPError
 from zds_client.client import ClientError
-from zgw_consumers.models import Service
 from zgw_consumers.service import get_paginated_results
 
 from importer.core.constants import ObjectTypenKeys
@@ -12,179 +13,127 @@ from importer.core.reporting import format_exception
 logger = logging.getLogger(__name__)
 
 
-def client_from_url(url):
-    client = Service.get_client(url)
-    if not client:
-        raise ClientError("a ZGW service must be configured first")
-    return client
+class LoaderException(Exception):
+    pass
 
 
-def force_delete_iotypen(session, catalogus: str, iotypen_data: List[dict]):
-    omschrijvings = [iotype_data["omschrijving"] for iotype_data in iotypen_data]
-    client = client_from_url(catalogus)
-    existed_iotypen = get_paginated_results(
-        client,
-        "informatieobjecttype",
-        query_params={"catalogus": catalogus, "status": "alles"},
+def retrieve_zaaktype(session, log_scope: str, identificatie: str):
+    """
+    to retrieve a zaaktype by identificatie we need to do a list search
+    """
+    client = session.client_from_url(session.catalogus_url)
+    result = client.list(
+        "zaaktype",
+        query_params={
+            "identificatie": identificatie,
+            "catalogus": session.catalogus_url,
+            "status": "alles",
+        },
     )
-    filtered_iotypen = [
-        iotype for iotype in existed_iotypen if iotype["omschrijving"] in omschrijvings
-    ]
-    if filtered_iotypen:
-        session.log_warning(
-            f"{len(filtered_iotypen)} informatieobjecttypen will be overridden",
-            ObjectTypenKeys.informatieobjecttypen,
+    if result["count"] > 1:
+        # TODO what?
+        raise LoaderException(f"{log_scope} found multiple conflicting resources")
+    elif result["count"] == 1:
+        return result["results"][0]
+    else:
+        return None
+
+
+def update_zaaktype(session, zaaktype_data: dict):
+    """
+    update/create a single zaaktype (closing if published)
+    """
+    client = session.client_from_url(session.catalogus_url)
+    log_scope = f"zaaktype {zaaktype_data['identificatie']}"
+
+    zaaktype_data["catalogus"] = session.catalogus_url
+
+    remote = retrieve_zaaktype(session, log_scope, zaaktype_data["identificatie"])
+    if not remote:
+        # create new
+        zaaktype = client.create("zaaktype", data=zaaktype_data)
+        session.log_info(f"{log_scope} created")
+    elif remote["concept"]:
+        # update old resource which is still in concept
+        zaaktype = client.update("zaaktype", zaaktype_data, url=remote["url"])
+        session.log_info(f"{log_scope} updated existing concept")
+    else:
+        # close old resource with start-date of the new resource
+        client.partial_update(
+            "zaaktype",
+            {"eindeGeldigheid": zaaktype_data["beginGeldigheid"]},
+            url=remote["url"],
         )
-
-    for iotype in filtered_iotypen:
-        try:
-            client.delete("informatieobjecttype", url=iotype["url"])
-        except ClientError as exc:
-            session.log_warning(
-                f"informatieobjecttype '{iotype['url']}' can't be deleted: {format_exception(exc)}",
-                ObjectTypenKeys.informatieobjecttypen,
-            )
-            continue
-
-
-def force_delete_zaaktypen(session, catalogus: str, zaaktypen_data: List[dict]):
-    identificaties = [
-        zaaktype_data["identificatie"] for zaaktype_data in zaaktypen_data
-    ]
-    client = client_from_url(catalogus)
-    existed_zaaktypen = get_paginated_results(
-        client, "zaaktype", query_params={"catalogus": catalogus, "status": "alles"}
-    )
-    filtered_zaaktypen = [
-        iotype
-        for iotype in existed_zaaktypen
-        if iotype["identificatie"] in identificaties
-    ]
-    if filtered_zaaktypen:
-        session.log_warning(
-            f"{len(filtered_zaaktypen)} zaaktypen will be overridden",
-            ObjectTypenKeys.zaaktypen,
+        session.log_info(
+            f"{log_scope} closed old resource on {zaaktype_data['beginGeldigheid']}: {remote['url']}"
         )
-
-    for zaaktype in filtered_zaaktypen:
-        try:
-            client.delete("zaaktype", url=zaaktype["url"])
-        except ClientError as exc:
-            session.log_warning(
-                f"zaaktype '{zaaktype['url']}' can't be deleted: {format_exception(exc)}",
-                ObjectTypenKeys.zaaktypen,
-            )
-            continue
-
-
-def create_zaaktype_children(
-    session,
-    log_scope,
-    children_data: List[dict],
-    zaaktype: dict,
-    resource: str,
-    type_key: str,
-):
-    zaaktype_url = zaaktype["url"]
-    client = client_from_url(zaaktype_url)
-
-    children = []
-    for child_data in children_data:
-        child_data["zaaktype"] = zaaktype_url
-
-        # TODO this should be moved to parse/precheck?
-        try:
-            child = client.create(resource, data=child_data)
-        except ClientError as exc:
-            session.log_warning(
-                f"{log_scope} {resource} '{child_data.get('omschrijving')}' can't be created: {format_exception(exc)}",
-                type_key,
-            )
-            continue
-        else:
-            children.append(child)
-            session.counter.increment_count(type_key)
-
-    return children
-
-
-def create_resultaattypen(
-    session, log_scope, resultaattypen_data: List[dict], zaaktype: dict
-):
-    # TODO verify we still have the logs for brondatumArchiefprocedure
-    return create_zaaktype_children(
-        session,
-        log_scope,
-        resultaattypen_data,
-        zaaktype,
-        "resultaattype",
-        ObjectTypenKeys.resultaattypen,
-    )
-
-
-def create_zaaktype(session, zaaktype_data, catalogus):
-    client = client_from_url(catalogus)
-
-    zaaktype_data["catalogus"] = catalogus
-    zaaktype = client.create("zaaktype", data=zaaktype_data)
+        # create new resource
+        zaaktype = client.create("zaaktype", data=zaaktype_data)
+        session.log_info(f"{log_scope} created new version")
 
     return zaaktype
 
 
-def create_informatieobjecttype(session, iotype_data, catalogus, client=None):
-    client = client or client_from_url(catalogus)
+def update_informatieobjecttypen(session, iotypen_data: List[dict]):
+    """
+    update/create list of informatieobjecttypen
 
-    iotype_data["catalogus"] = catalogus
-    if not iotype_data["beginGeldigheid"]:
-        today = date.today().isoformat()
-        iotype_data["beginGeldigheid"] = today
-        session.log_warning(
-            f"iotype '{iotype_data['omschrijving']}' doesn't have beginGeldigheid. It's set as {today}"
-        )
+    this is messy because we need to:
+    1) backfill some fields
+    2) fetch existing resources and create lookup map to match for update/create (API can't search)
+    3) run the update/create logic on all items
+    """
+    client = session.client_from_url(session.catalogus_url)
 
-    iotype = client.create("informatieobjecttype", data=iotype_data)
+    # pre-process and backfill
+    for iotype_data in iotypen_data:
+        iotype_data["catalogus"] = session.catalogus_url
+        if not iotype_data["beginGeldigheid"]:
+            today = date.today().isoformat()
+            iotype_data["beginGeldigheid"] = today
+            session.log_info(
+                f"iotype '{iotype_data['omschrijving']}' doesn't have beginGeldigheid. It's set as today ({today})."
+            )
 
-    return iotype
-
-
-def create_zaaktype_informatieobjecttypen(
-    session, ziotypen_data: List[dict], iotypen_urls: Dict[str, str], zaaktype: dict
-):
-    zaaktype_url = zaaktype["url"]
-    client = client_from_url(zaaktype_url)
-
-    ziotypen = []
-    for ziotype_data in ziotypen_data:
-        iotype_omschriving = ziotype_data.pop("informatieobjecttype_omschrijving")
-        ziotype_data["informatieobjecttype"] = iotypen_urls[iotype_omschriving]
-        ziotype_data["zaaktype"] = zaaktype_url
-        ziotype = client.create("zaakinformatieobjecttype", data=ziotype_data)
-
-        ziotypen.append(ziotype)
-        session.counter.increment_count(ObjectTypenKeys.zaakinformatieobjecttypen)
-
-    return ziotypen
-
-
-def load_data(
-    session,
-    zaaktypen_data: List[dict],
-    iotypen_data: List[dict],
-    catalogus: str,
-):
-    # if force:
-    #     force_delete_iotypen(catalogus, iotypen_data)
-    #     force_delete_zaaktypen(catalogus, zaaktypen_data)
+    # fetch existing and create lookup
+    remote_list = get_paginated_results(
+        client,
+        "informatieobjecttype",
+        query_params={"catalogus": session.catalogus_url, "status": "alles"},
+    )
+    remote_map = {iotype["omschrijving"]: iotype for iotype in remote_list}
 
     iotypen = []
 
+    # update/create resources
     for iotype_data in iotypen_data:
-
+        log_scope = f"informatieobjecttype '{iotype_data['omschrijving']}'"
         try:
-            iotype = create_informatieobjecttype(session, iotype_data, catalogus)
-        except ClientError as exc:
-            session.log_warning(
-                f"informatieobjecttype '{iotype_data['omschrijving']}' can't be created: {format_exception(exc)}",
+            remote = remote_map.get(iotype_data["omschrijving"])
+            if not remote:
+                # new resource
+                iotype = client.create("informatieobjecttype", data=iotype_data)
+                session.log_info(f"{log_scope} created new")
+            elif remote["concept"]:
+                iotype = client.update(
+                    "informatieobjecttype", iotype_data, url=remote["url"]
+                )
+                session.log_info(f"{log_scope} updated existing concept")
+            else:
+                # close old resource with start-date of the new resource
+                client.partial_update(
+                    "informatieobjecttype",
+                    {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
+                    url=remote["url"],
+                )
+                # create new resource
+                iotype = client.create("informatieobjecttype", data=iotype_data)
+                session.log_info(
+                    f"{log_scope} closed published resource and started new concept"
+                )
+        except (ClientError, HTTPError) as exc:
+            session.log_error(
+                f"{log_scope} can't be created: {format_exception(exc)}",
                 ObjectTypenKeys.informatieobjecttypen,
             )
             continue
@@ -194,6 +143,106 @@ def load_data(
 
     session.flush_counts()
 
+    return iotypen
+
+
+def update_zaaktype_children(
+    session,
+    log_scope: str,
+    children_data: List[dict],
+    zaaktype: dict,
+    resource: str,
+    type_key: str,
+    match_field: str,
+):
+    """
+    generically update/create a list of zaaktype child-resources
+    """
+    zaaktype_url = zaaktype["url"]
+    client = session.client_from_url(zaaktype_url)
+
+    # fetch existing and make lookup
+    remote_list = get_paginated_results(
+        client,
+        resource,
+        query_params={"zaaktype": zaaktype_url, "status": "alles"},
+    )
+    remote_map = {o[match_field]: o for o in remote_list}
+
+    objects = []
+
+    # update/create resources
+    for i, child_data in enumerate(children_data):
+        _log_scope = f"{log_scope} {resource} {match_field}='{child_data[match_field]}'"
+        child_data["zaaktype"] = zaaktype_url
+        try:
+            # check the lookup for existing resource
+            remote = remote_map.get(child_data[match_field])
+            if remote:
+                obj = client.update(resource, child_data, url=remote["url"])
+                session.log_info(f"{_log_scope} updated existing concept")
+            else:
+                obj = client.create(resource, child_data)
+                session.log_info(f"{_log_scope} created new")
+        except (ClientError, HTTPError) as exc:
+            session.log_error(
+                f"{_log_scope} can't be created: {format_exception(exc)}", type_key
+            )
+            continue
+        else:
+            objects.append(obj)
+            session.counter.increment_count(type_key)
+
+    session.flush_counts()
+
+    return objects
+
+
+def update_zaaktype_informatieobjecttypen(
+    session,
+    log_scope: str,
+    ziotypen_data: List[dict],
+    iotypen_urls: Dict[str, str],
+    zaaktype: dict,
+):
+    """
+    update/create a list of zaaktype_informatieobjecttypen connecting resources
+    """
+    for ziotype_data in ziotypen_data:
+        iotype_omschriving = ziotype_data.pop("informatieobjecttype_omschrijving")
+        ziotype_data["informatieobjecttype"] = iotypen_urls[iotype_omschriving]
+        ziotype_data["zaaktype"] = zaaktype["url"]
+
+    # reuse generic children function
+    return update_zaaktype_children(
+        session,
+        log_scope,
+        ziotypen_data,
+        zaaktype,
+        "zaakinformatieobjecttype",
+        ObjectTypenKeys.zaakinformatieobjecttypen,
+        "volgnummer",
+    )
+
+
+def load_data(
+    session,
+    zaaktypen_data: List[dict],
+    iotypen_data: List[dict],
+):
+    """
+    load data to catalog
+    """
+    try:
+        iotypen = update_informatieobjecttypen(session, iotypen_data)
+    except (ClientError, HTTPError) as exc:
+        session.log_error(
+            f"informatieobjecttypen can't be created: {format_exception(exc)}",
+            ObjectTypenKeys.informatieobjecttypen,
+        )
+        # bail?
+        return
+
     iotypen_urls = {iotype["omschrijving"]: iotype["url"] for iotype in iotypen}
 
     for zaaktype_data in zaaktypen_data:
@@ -201,44 +250,53 @@ def load_data(
 
         children = zaaktype_data.pop("_children")
         try:
-            zaaktype = create_zaaktype(session, zaaktype_data, catalogus)
-        except ClientError as exc:
-            session.log_warning(
+            zaaktype = update_zaaktype(session, zaaktype_data)
+        except (ClientError, HTTPError) as exc:
+            session.log_error(
                 f"{log_scope} can't be created: {format_exception(exc)}",
                 ObjectTypenKeys.zaaktypen,
             )
             continue
         else:
             session.counter.increment_count(ObjectTypenKeys.zaaktypen)
-            session.flush_counts()
 
-        # TODO catch/log ClientErrors on sub resources
+        session.flush_counts()
 
         # create zaaktype relative objects
-        create_zaaktype_children(
+        update_zaaktype_children(
             session,
             log_scope,
             children["roltypen"],
             zaaktype,
             "roltype",
             ObjectTypenKeys.roltypen,
+            "omschrijving",
         )
-        session.flush_counts()
 
-        create_zaaktype_children(
+        update_zaaktype_children(
             session,
             log_scope,
             children["statustypen"],
             zaaktype,
             "statustype",
             ObjectTypenKeys.statustypen,
+            "volgnummer",
         )
-        session.flush_counts()
 
-        create_resultaattypen(session, log_scope, children["resultaattypen"], zaaktype)
-        session.flush_counts()
-
-        create_zaaktype_informatieobjecttypen(
-            session, children["zaakinformatieobjecttypen"], iotypen_urls, zaaktype
+        update_zaaktype_children(
+            session,
+            log_scope,
+            children["resultaattypen"],
+            zaaktype,
+            "resultaattype",
+            ObjectTypenKeys.resultaattypen,
+            "omschrijving",
         )
-        session.flush_counts()
+
+        update_zaaktype_informatieobjecttypen(
+            session,
+            log_scope,
+            children["zaakinformatieobjecttypen"],
+            iotypen_urls,
+            zaaktype,
+        )

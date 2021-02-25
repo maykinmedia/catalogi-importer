@@ -3,6 +3,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from zds_client import ClientError
+from zgw_consumers.client import ZGWClient
+from zgw_consumers.models import Service
 
 from importer.core.choices import JobLogLevel
 from importer.core.constants import ObjectTypenKeys
@@ -23,6 +25,20 @@ class ImportSession:
         self.logs = list()
         self.save_logs = save_logs
         self.counter = TypeCounter()
+        self._clients = dict()
+
+    @property
+    def catalogus_url(self):
+        return self.job.catalog.url
+
+    def client_from_url(self, url) -> ZGWClient:
+        if url in self._clients:
+            return self._clients[url]
+        client = Service.get_client(url)
+        if not client:
+            raise ClientError("a ZGW service must be configured first")
+        self._clients[url] = client
+        return client
 
     def add_log(self, level, message):
         assert level in JobLogLevel.values

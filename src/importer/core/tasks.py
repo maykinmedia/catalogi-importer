@@ -49,10 +49,12 @@ def import_job_task(job_id):
         run_import(job)
 
         job.mark_completed()
+        job.save()
         logger.info(f"[Job#{job_id}] completed")
 
     except Exception:
         job.mark_error()
+        job.save()
         logger.exception(f"[Job#{job_id}] exception")
         if settings.DEBUG:
             raise
