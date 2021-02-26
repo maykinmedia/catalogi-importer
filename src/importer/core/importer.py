@@ -12,6 +12,10 @@ from importer.core.reporting import ImportSession
 logger = logging.getLogger(__name__)
 
 
+class ImporterException(Exception):
+    pass
+
+
 def check_job(job, session):
     """
     very basic shared check
@@ -68,13 +72,13 @@ def run_import(job):
     """
     session = ImportSession(job, save_logs=True)
     if not check_job(job, session):
-        return session
+        raise ImporterException("failed precheck")
 
     try:
         tree = etree.fromstring(job.source.read())
     except LxmlError:
         session.log_error("XML parse error.")
-        return session
+        raise ImporterException()
 
     zaaktypen, iotypen = parse_xml(session, tree, job.year)
 

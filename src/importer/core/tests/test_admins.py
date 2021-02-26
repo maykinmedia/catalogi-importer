@@ -2,6 +2,7 @@ from django.core.files.base import ContentFile
 
 import requests_mock
 from webtest import Upload
+from zgw_consumers.constants import APITypes
 
 from importer.core.choices import JobState
 from importer.core.models import CatalogConfig, Job, SelectielijstConfig
@@ -14,6 +15,7 @@ from importer.core.tests.factories import (
     JobLogFactory,
     QueuedJobFactory,
     RunningJobFactory,
+    ZGWServiceFactory,
 )
 
 catalog_response = {
@@ -46,7 +48,6 @@ class CatalogConfigAdminViewTest(AdminWebTest):
 
     @requests_mock.Mocker()
     def test_change_view(self, m):
-        # this matches the factories
         m.get(
             "http://test/api/schema.yaml",
             content=self.get_test_data("openzaak-openapi.yaml"),
@@ -55,7 +56,14 @@ class CatalogConfigAdminViewTest(AdminWebTest):
             "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
             json=catalog_response,
         )
-        catalog = CatalogConfigFactory(uuid="7c0e6595-adbe-45b4-b092-31ba75c7dd74")
+        service = ZGWServiceFactory(
+            api_root="http://test/api/",
+            oas="http://test/api/schema.yaml",
+            api_type=APITypes.ztc,
+        )
+        catalog = CatalogConfigFactory(
+            service=service, uuid="7c0e6595-adbe-45b4-b092-31ba75c7dd74"
+        )
         response = self.app.get(self.reverse_change_url(catalog))
 
         # resubmit

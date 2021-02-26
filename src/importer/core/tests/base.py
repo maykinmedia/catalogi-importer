@@ -9,19 +9,7 @@ from importer.core.models import SelectielijstConfig
 from importer.core.tests.factories import ZGWServiceFactory
 
 
-class AdminWebTest(WebTest):
-    def setUp(self):
-        super().setUp()
-        self.user = SuperUserFactory()
-        self.app.set_user(self.user)
-        service = ZGWServiceFactory(
-            api_root="https://selectielijst.openzaak.nl/api/v1/",
-            oas="https://selectielijst.openzaak.nl/api/v1/schema/openapi.yaml",
-        )
-        selection = SelectielijstConfig.get_solo()
-        selection.service = service
-        selection.save()
-
+class TestCaseMixin:
     def get_test_data(self, file, mode="rb"):
         with open(os.path.join(os.path.dirname(__file__), "data", file), mode) as f:
             return f.read()
@@ -47,6 +35,43 @@ class AdminWebTest(WebTest):
             ),
             args=[model_instance.pk],
         )
+
+    def setup_selectielijst_service(self):
+        service = ZGWServiceFactory(
+            api_root="https://selectielijst.openzaak.nl/api/v1/",
+            oas="https://selectielijst.openzaak.nl/api/v1/schema/openapi.yaml",
+        )
+        selection = SelectielijstConfig.get_solo()
+        selection.service = service
+        selection.save()
+
+    def setup_selectielijst_mocks(self, m):
+        m.get(
+            "https://selectielijst.openzaak.nl/api/v1/schema/openapi.yaml?v=3",
+            content=self.get_test_data("selectielijst-openapi.yaml"),
+        )
+        m.get(
+            "https://selectielijst.openzaak.nl/api/v1/procestypen?jaar=2020",
+            content=self.get_test_data("selectielijst-procestypen.json"),
+        )
+        m.get(
+            "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen",
+            content=self.get_test_data(
+                "selectielijst-resultaattypeomschrijvingen.json"
+            ),
+        )
+        m.get(
+            "https://selectielijst.openzaak.nl/api/v1/resultaten",
+            content=self.get_test_data("selectielijst-resultaten.json"),
+        )
+
+
+class AdminWebTest(TestCaseMixin, WebTest):
+    def setUp(self):
+        super().setUp()
+        self.user = SuperUserFactory()
+        self.app.set_user(self.user)
+        self.setup_selectielijst_service()
 
     def assertAdminChangeList(self, model_class, check_search=True):
         """

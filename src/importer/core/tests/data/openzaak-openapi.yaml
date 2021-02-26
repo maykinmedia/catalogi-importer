@@ -7630,7 +7630,7 @@ paths:
           type: string
           format: uuid
 servers:
-  - url: https://test.openzaak.nl/catalogi/api/v1
+  - url: http://test/api
 components:
   requestBodies:
     Eigenschap:

@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dsp
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <preambule>
+        <datum>2020-08-04T14:11:20</datum>
+        <beheersapplicatie>iNavigator 3.2.0.95</beheersapplicatie>
+        <gebruiker>admin</gebruiker>
+        <specificatieversie>ICR1.5.13</specificatieversie>
+    </preambule>
+
+    <processen>
+        <proces id="B1796">
+            <velden>
+                <kernomschrijving ref="SCN0000026">Budgetbeheer aanvraag</kernomschrijving>
+                <model-kernomschrijving ref="SCN0000027">Budgetbeheer aanvraag</model-kernomschrijving>
+                <naam ref="SCN0000028">Het beoordelen van een aanvraag voor het beheren van budget bij geldproblemen.</naam>
+                <standaard-dossiernaam ref="SCN0000029" xsi:nil="true"/>
+                <taakveld ref="SCN0000030">Sociale voorzieningen en maatschappelijke dienstverlening</taakveld>
+                <proceseigenaar ref="SCN0000031">BUD</proceseigenaar>
+                <toelichting-proces ref="SCN0000034">Dit werkproces betreft het beoordelen van een aanvraag voor het beheren van budget bij geldproblemen. Wanneer een inwoner problemen heeft met het beheren van de financiën, kan hij bij de gemeente een aanvraag indienen voor budgetbeheer. De gemeenten neemt tijdelijk het beheer van de financiën over, met de bedoeling dat de aanvrager het op termijn zelf weer overneemt. In de Wet schuldhulpverlening is bepaald dat de gemeente aan schuldpreventie dient te doen. Naast dit werkproces vormen de schuldhulpverlening vroegsignalering en het budgetadvies daar voorbeelden van.</toelichting-proces>
+                <aanleiding ref="SCN0000035">Dit werkproces wordt extern getriggerd door een inkomende aanvraag.</aanleiding>
+                <opmerking-proces ref="SCN0000036" xsi:nil="true"/>
+                <exportprofiel ref="SCN0000037">
+                    <waardes>
+                        <waarde ref="LW00000004">DMS</waarde>
+                        <waarde ref="LW00000011">Batch</waarde>
+                    </waardes>
+                </exportprofiel>
+                <ketenpartners ref="SCN0000038"/>
+                <ztc-procestype ref="SCN0000040">Specifiek werkproces</ztc-procestype>
+                <goedgekeurd ref="SCN0000041">Nee</goedgekeurd>
+                <goedkeurdatum ref="SCN0000042" xsi:nil="true"/>
+                <startdatum-vast ref="SCN0000043" xsi:nil="true"/>
+                <einddatum-uiterst ref="SCN0000044" xsi:nil="true"/>
+                <grondslag ref="SCNX000047">
+                    <list/>
+                </grondslag>
+                <grondslag-txt ref="SCNT000047"/>
+                <lokale-regelgeving ref="SCNX000048">
+                    <list/>
+                </lokale-regelgeving>
+                <lokale-regelgeving-txt ref="SCNT000048"/>
+                <vind-catalogusterm ref="SCN0000051"/>
+                <wettelijke-afdoeningstermijn ref="SCNW000052" xsi:nil="true"/>
+                <wettelijke-afdoeningstermijn-eenheid ref="SCNE000052" xsi:nil="true"/>
+                <wettelijke-verdagingstermijn ref="SCNW000053" xsi:nil="true"/>
+                <wettelijke-verdagingstermijn-eenheid ref="SCNE000053" xsi:nil="true"/>
+                <verdagingstermijn ref="SCNW000054" xsi:nil="true"/>
+                <verdagingstermijn-eenheid ref="SCNE000054" xsi:nil="true"/>
+                <signaleringstermijn ref="SCNW000055" xsi:nil="true"/>
+                <signaleringstermijn-eenheid ref="SCNE000055" xsi:nil="true"/>
+                <afdoeningstermijn ref="SCNW000056">365</afdoeningstermijn>
+                <afdoeningstermijn-eenheid ref="SCNE000056">Dag</afdoeningstermijn-eenheid>
+                <beroep-mogelijk ref="SCN0000057">Ja</beroep-mogelijk>
+                <aanhouden-mogelijk ref="SCN0000058">Nee</aanhouden-mogelijk>
+                <betaling-nodig ref="SCN0000059">Nee</betaling-nodig>
+                <wkpb ref="SCN0000060"/>
+                <bag ref="SCN0000061"/>
+                <wet-dwangsom ref="SCN0000062">Nee</wet-dwangsom>
+                <lex-silencio-positivo ref="SCN0000063">Nee</lex-silencio-positivo>
+                <vertrouwelijkheid ref="SCN0000064">ZAAKVERTROUWELIJK</vertrouwelijkheid>
+                <publicatie-indicatie ref="SCN0000065">Nee</publicatie-indicatie>
+                <publicatietekst ref="SCN0000066" xsi:nil="true"/>
+                <zaaktype-code ref="SCN0000067" xsi:nil="true"/>
+                <zaaktype-naam-model ref="SCN0000068">
+                    <structuur>
+                        <handeling-initiator>Aanvraag</handeling-initiator>
+                        <onderwerp>budgetbeheer</onderwerp>
+                        <handeling-behandelaar>beoordelen</handeling-behandelaar>
+                    </structuur>
+                </zaaktype-naam-model>
+                <zaaktype-naam ref="SCN0000069">
+                    <structuur>
+                        <handeling-initiator>Aanvraag</handeling-initiator>
+                        <onderwerp>budgetbeheer</onderwerp>
+                        <handeling-behandelaar>beoordelen</handeling-behandelaar>
+                    </structuur>
+                </zaaktype-naam>
+                <zaaktype-categorie ref="SCN0000070">Trigger Extern (TE)</zaaktype-categorie>
+                <zaaktype-procesarchitectuur ref="SCN0000071">Behandelen verzoek ondersteuningsproduct</zaaktype-procesarchitectuur>
+                <zaaktype-iv3-categorie ref="SCN0000072">6.7 Maatwerkdienstverlening 18+</zaaktype-iv3-categorie>
+                <verantwoordingsrelatie ref="SCN0000073" xsi:nil="true"/>
+                <generiek-zaaktype ref="SCN0000074" xsi:nil="true"/>
+                <vernietigingsgrondslag ref="SCNX000076">
+                    <list/>
+                </vernietigingsgrondslag>
+                <vernietigingsgrondslag-txt ref="SCNT000076"/>
+                <basisarchiefcode ref="SCN0000077">-1.844.51</basisarchiefcode>
+                <vng-thesaurusterm ref="SCN0000078">BUDGETBEHEER</vng-thesaurusterm>
+                <lokale-trefwoorden ref="SCN0000079" xsi:nil="true"/>
+                <waardering ref="SCN0000080">Vernietigen</waardering>
+                <bewaartermijn ref="SCNW000081">5</bewaartermijn>
+                <bewaartermijn-eenheid ref="SCNE000081">Jaar</bewaartermijn-eenheid>
+                <bewaartermijn-start ref="SCN0000082">Afgehandeld</bewaartermijn-start>
+                <toelichting-handeling ref="SCN0000083" xsi:nil="true"/>
+                <opmerking-handeling ref="SCN0000084">Substitutie per 6-7-2020</opmerking-handeling>
+                <toelichting-documenttypen ref="SCN0000091" xsi:nil="true"/>
+                <opmerking-documenttypen ref="SCN0000092" xsi:nil="true"/>
+                <toelichting-applicaties ref="SCN0000093" xsi:nil="true"/>
+                <opmerking-applicaties ref="SCN0000094" xsi:nil="true"/>
+                <dossierlokatie ref="SCN0000095" xsi:nil="true"/>
+                <toelichting-archiefbestanden ref="SCN0000096" xsi:nil="true"/>
+                <opmerking-archiefbestanden ref="SCN0000097" xsi:nil="true"/>
+                <schemalocatie ref="SCN0000098">https://i-navigator.bizzib.nl/schemas/gem/B1796/index.htm</schemalocatie>
+                <webformulier ref="SCN0000099" xsi:nil="true"/>
+                <opmerking-zaakeigenschappen ref="SCN0000100" xsi:nil="true"/>
+                <opmerking-procesrelaties ref="SCN0000101" xsi:nil="true"/>
+                <opmerking-roltypen ref="SCN0000102" xsi:nil="true"/>
+                <opmerking-registers ref="SCN0000104" xsi:nil="true"/>
+                <opmerking-zaakobjecten ref="SCN0000105" xsi:nil="true"/>
+                <opmerking-producten ref="SCN0000106" xsi:nil="true"/>
+                <toelichting-zaakeigenschappen ref="SCN0000107" xsi:nil="true"/>
+                <toelichting-procesrelaties ref="SCN0000108" xsi:nil="true"/>
+                <toelichting-roltypen ref="SCN0000109" xsi:nil="true"/>
+                <toelichting-producten ref="SCN0000111" xsi:nil="true"/>
+                <toelichting-zaakobjecten ref="SCN0000112" xsi:nil="true"/>
+                <toelichting-registers ref="SCN0000113" xsi:nil="true"/>
+                <actueel-van ref="SCN0000117">2020-07-06T09:12:45</actueel-van>
+                <actueel-tot ref="SCN0000118" xsi:nil="true"/>
+                <bron ref="SCN0000123">Model</bron>
+                <laatst-gewijzigd ref="SCN0000129">2020-07-06T12:50:31</laatst-gewijzigd>
+                <actief ref="SGC0001002">Ja</actief>
+                <numerieke-code ref="SGC0002002">21796</numerieke-code>
+            </velden>
+            <LokaleMetaData/>
+            <roltypen>
+                <roltype id="MLT0003992" volgnummer="1" soort-id="MLS0000001">
+                    <velden>
+                        <naam ref="SCN0000653">Initiator</naam>
+                        <naam-model ref="SCN0000654">Initiator</naam-model>
+                        <opmerking ref="SCN0000658" xsi:nil="true"/>
+                        <toelichting ref="SCN0000659" xsi:nil="true"/>
+                        <betrokkenen ref="SCN0000660" xsi:nil="true"/>
+                        <actueel-van ref="SCN0000662">2020-07-06T09:12:45</actueel-van>
+                        <actueel-tot ref="SCN0000663" xsi:nil="true"/>
+                        <bron ref="SCN0000667">Model</bron>
+                        <laatst-gewijzigd ref="SCN0000673">2020-07-06T08:05:52</laatst-gewijzigd>
+                        <actief ref="SGC0001022">Ja</actief>
+                    </velden>
+                    <LokaleMetaData/>
+                </roltype>
+            </roltypen>
+            <zaakeigenschappen/>
+            <documenttypen>
+                <documenttype id="BE00017266" volgnummer="1" soort-id="MDS0000050">
+                    <velden>
+                        <naam ref="SCN0000516">Onderzoeksstuk</naam>
+                        <naam-model ref="SCN0000517">Onderzoeksstuk</naam-model>
+                        <standaardomschrijving ref="SCN0000521" xsi:nil="true"/>
+                        <opmerking ref="SCN0000522" xsi:nil="true"/>
+                        <toelichting ref="SCN0000523" xsi:nil="true"/>
+                        <type ref="SCN0000524">Intern</type>
+                        <indossier ref="SCN0000525">Ja</indossier>
+                        <waardering ref="SCN0000526" xsi:nil="true"/>
+                        <bewaartermijn ref="SCNW000527" xsi:nil="true"/>
+                        <bewaartermijn-eenheid ref="SCNE000527" xsi:nil="true"/>
+                        <bewaartermijn-start ref="SCN0000528" xsi:nil="true"/>
+                        <toelichting-bewaartermijn ref="SCN0000529" xsi:nil="true"/>
+                        <procestrigger ref="SCN0000531">Nee</procestrigger>
+                        <vertrouwelijkheid ref="SCN0000532" xsi:nil="true"/>
+                        <sjabloonnaam ref="SCN0000534" xsi:nil="true"/>
+                        <trefwoorden ref="SCN0000535" xsi:nil="true"/>
+                        <publicatie-indicatie ref="SCN0000537">Nee</publicatie-indicatie>
+                        <actueel-van ref="SCN0000539">2020-07-06T09:12:45</actueel-van>
+                        <actueel-tot ref="SCN0000540" xsi:nil="true"/>
+                        <bron ref="SCN0000546">Model</bron>
+                        <laatst-gewijzigd ref="SCN0000552">2020-07-06T08:05:52</laatst-gewijzigd>
+                        <actief ref="SGC0001018">Ja</actief>
+                    </velden>
+                    <LokaleMetaData/>
+                </documenttype>
+            </documenttypen>
+            <statustypen>
+                <statustype id="MST0008113" volgnummer="1" soort-id="MSS0000001">
+                    <velden>
+                        <naam ref="SCN0000555">Geregistreerd</naam>
+                        <naam-model ref="SCN0000556">Geregistreerd</naam-model>
+                        <activiteit ref="SCN0000560" xsi:nil="true"/>
+                        <bericht ref="SCN0000561" xsi:nil="true"/>
+                        <opmerking ref="SCN0000562" xsi:nil="true"/>
+                        <toelichting ref="SCN0000563">Deze status markeert dat het startdocument van de zaak is geregistreerd.</toelichting>
+                        <standaard-doorlooptijd ref="SCNW000564" xsi:nil="true"/>
+                        <standaard-doorlooptijd-eenheid ref="SCNE000564" xsi:nil="true"/>
+                        <actueel-van ref="SCN0000568">2020-07-06T09:12:45</actueel-van>
+                        <actueel-tot ref="SCN0000569" xsi:nil="true"/>
+                        <zichtbaarheid ref="SCN0000571">Intern</zichtbaarheid>
+                        <bron ref="SCN0000576">Model</bron>
+                        <laatst-gewijzigd ref="SCN0000582">2020-07-06T08:05:52</laatst-gewijzigd>
+                        <actief ref="SGC0001019">Ja</actief>
+                    </velden>
+                    <LokaleMetaData/>
+                    <checks>
+                        <check id="MCK0018588" volgnummer="1">
+                            <velden>
+                                <naam ref="SCN0000751">Staat in het systeem</naam>
+                                <naam-model ref="SCN0000752">Staat in het systeem</naam-model>
+                                <vraag ref="SCN0000756">Is de informatie geregistreerd in het betreffende systeem?</vraag>
+                                <vraag-model ref="SCN0000757">Is de informatie geregistreerd in het betreffende systeem?</vraag-model>
+                                <opmerking ref="SCN0000758" xsi:nil="true"/>
+                                <toelichting ref="SCN0000759" xsi:nil="true"/>
+                                <verplicht ref="SCN0000761">Ja</verplicht>
+                                <actueel-van ref="SCN0000764">2020-07-06T09:12:45</actueel-van>
+                                <actueel-tot ref="SCN0000765" xsi:nil="true"/>
+                                <bron ref="SCN0000770">Model</bron>
+                                <laatst-gewijzigd ref="SCN0000776">2020-07-06T08:05:52</laatst-gewijzigd>
+                                <actief ref="SGC0001026">Ja</actief>
+                            </velden>
+                        </check>
+                    </checks>
+                </statustype>
+            </statustypen>
+            <resultaattypen>
+                <resultaattype id="MRT0003604" volgnummer="1" soort-id="MRS0000008">
+                    <velden>
+                        <naam ref="SCN0000585">Geweigerd</naam>
+                        <naam-model ref="SCN0000586">Geweigerd</naam-model>
+                        <opmerking ref="SCN0000590" xsi:nil="true"/>
+                        <toelichting ref="SCN0000591" xsi:nil="true"/>
+                        <vernietigingsgrondslag ref="SCNX000593">
+                            <list>
+                                <fields>
+                                    <field naam="NAAM">Resultaat 8.2 Selectielijst gemeenten en intergemeentelijke organen 2020</field>
+                                    <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2020.gem.html#8_2</field>
+                                    <field naam="TOELICHTING"/>
+                                </fields>
+                            </list>
+                        </vernietigingsgrondslag>
+                        <vernietigingsgrondslag-txt ref="SCNT000593"/>
+                        <waardering ref="SCN0000594">Vernietigen</waardering>
+                        <bewaartermijn ref="SCNW000595">5</bewaartermijn>
+                        <bewaartermijn-eenheid ref="SCNE000595">Jaar</bewaartermijn-eenheid>
+                        <bewaartermijn-start ref="SCN0000596">Afgehandeld</bewaartermijn-start>
+                        <brondatum-archiefprocedure ref="SCN0000597">Afgehandeld</brondatum-archiefprocedure>
+                        <toelichting-bewaartermijn ref="SCN0000598" xsi:nil="true"/>
+                        <actueel-van ref="SCN0000602">2020-07-06T09:12:45</actueel-van>
+                        <actueel-tot ref="SCN0000603" xsi:nil="true"/>
+                        <bron ref="SCN0000609">Model</bron>
+                        <laatst-gewijzigd ref="SCN0000615">2020-07-06T08:05:52</laatst-gewijzigd>
+                        <actief ref="SGC0001020">Ja</actief>
+                    </velden>
+                    <LokaleMetaData/>
+                </resultaattype>
+            </resultaattypen>
+            <besluittypen/>
+        </proces>
+
+    </processen>
+
+</dsp>

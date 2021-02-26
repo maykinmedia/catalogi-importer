@@ -45,7 +45,6 @@ def import_job_task(job_id):
         )
 
         # run the importer
-        # mock_import_job(job)
         run_import(job)
 
         job.mark_completed()
