@@ -15,6 +15,7 @@ from .constants import (
     ObjectTypenKeys,
     RichtingChoices,
 )
+from .reporting import format_exception
 from .selectielijst import (
     get_procestypen,
     get_resultaaten,
@@ -457,19 +458,37 @@ def parse_xml(
             )
         except ParserException as exc:
             session.log_error(
-                str(exc),
+                format_exception(exc),
                 ObjectTypenKeys.zaaktypen,
             )
             continue
 
-        roltypen_data = [
-            construct_roltype_data(session, log_scope, roltype)
-            for roltype in process.find("roltypen")
-        ]
-        statustype_data = [
-            construct_statustype_data(session, log_scope, statustype)
-            for statustype in process.find("statustypen")
-        ]
+        roltypen_data = []
+        for roltype in process.find("roltypen"):
+            try:
+                rolype_data = construct_roltype_data(session, log_scope, roltype)
+                roltypen_data.append(rolype_data)
+            except ParserException as exc:
+                session.log_error(
+                    f"{log_scope} roltype '{roltype.get('omschrijving')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.roltypen,
+                )
+                continue
+
+        statustypen_data = []
+        for statustype in process.find("statustypen"):
+            try:
+                statusype_data = construct_statustype_data(
+                    session, log_scope, statustype
+                )
+                statustypen_data.append(statusype_data)
+            except ParserException as exc:
+                session.log_error(
+                    f"{log_scope} statustype '{statustype.get('volgnummer')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.statustypen,
+                )
+                continue
+
         resultaattypen_data = []
         for resultaattype in process.find("resultaattypen"):
             try:
@@ -479,27 +498,41 @@ def parse_xml(
                     resultaattype,
                     zaaktype_data["selectielijstProcestype"],
                 )
+                resultaattypen_data.append(resultaatype_data)
             except ParserException as exc:
                 session.log_error(
-                    f"{log_scope} resultaattype '{resultaattype.get('id')}' can't be parsed due to: {exc}",
+                    f"{log_scope} resultaattype '{resultaattype.get('id')}' can't be parsed due to: {format_exception(exc)}",
                     ObjectTypenKeys.resultaattypen,
                 )
                 continue
-            else:
-                resultaattypen_data.append(resultaatype_data)
 
-        iotypen_data = [
-            construct_iotype_data(session, log_scope, document)
-            for document in process.find("documenttypen")
-        ]
-        ziotypen_data = [
-            construct_ziotype_data(session, log_scope, document)
-            for document in process.find("documenttypen")
-        ]
+        iotypen_data = []
+        for iotype in process.find("documenttypen"):
+            try:
+                ioype_data = construct_iotype_data(session, log_scope, iotype)
+                iotypen_data.append(ioype_data)
+            except ParserException as exc:
+                session.log_error(
+                    f"{log_scope} iotype '{iotype.get('omschrijving')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.informatieobjecttypen,
+                )
+                continue
+
+        ziotypen_data = []
+        for ziotype in process.find("documenttypen"):
+            try:
+                zioype_data = construct_ziotype_data(session, log_scope, ziotype)
+                ziotypen_data.append(zioype_data)
+            except ParserException as exc:
+                session.log_error(
+                    f"{log_scope} ziotype '{ziotype.get('volgnummer')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.zaakinformatieobjecttypen,
+                )
+                continue
 
         zaaktype_data["_children"] = {
             "roltypen": roltypen_data,
-            "statustypen": statustype_data,
+            "statustypen": statustypen_data,
             "resultaattypen": resultaattypen_data,
             "zaakinformatieobjecttypen": ziotypen_data,
         }
