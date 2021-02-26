@@ -8,12 +8,14 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from solo.admin import SingletonModelAdmin
-from zgw_consumers.models import Service
 
 from importer.core.choices import JobState
 from importer.core.importer import precheck_import
 from importer.core.models import CatalogConfig, Job, SelectielijstConfig
-from importer.core.reporting import transform_statistics
+from importer.core.reporting import (
+    transform_import_statistics,
+    transform_precheck_statistics,
+)
 from importer.core.tasks import import_job_task
 from importer.utils.forms import StaticHiddenField
 
@@ -153,7 +155,7 @@ class JobAdmin(admin.ModelAdmin):
 
             context["title"] = _("Precheck")
             context["value_table"] = {
-                "rows": transform_statistics(session.counter.get_data()),
+                "rows": transform_precheck_statistics(session.counter.get_data()),
             }
             context["joblog_table"] = {
                 "show_timestamp": False,
@@ -165,13 +167,13 @@ class JobAdmin(admin.ModelAdmin):
         elif job.state == JobState.running:
             context["title"] = _("Running..")
             context["value_table"] = {
-                "rows": transform_statistics(job.statistics),
+                "rows": transform_import_statistics(job.statistics),
             }
         elif job.state == JobState.completed:
             context["title"] = _("Import completed")
             context["value_table"] = {
                 "title": _("Results"),
-                "rows": transform_statistics(job.statistics),
+                "rows": transform_import_statistics(job.statistics),
             }
             context["joblog_table"] = {
                 # "show_timestamp": True,
@@ -181,7 +183,7 @@ class JobAdmin(admin.ModelAdmin):
             context["title"] = _("Import Error")
             context["value_table"] = {
                 "title": _("Error"),
-                "rows": transform_statistics(job.statistics),
+                "rows": transform_import_statistics(job.statistics),
             }
             context["joblog_table"] = {
                 "show_timestamp": True,

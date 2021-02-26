@@ -70,99 +70,73 @@ class ImportSession:
 
 @dataclass()
 class TypeCounterData:
-    count: int = 0
-    total: int = 0
+    updated: int = 0
+    created: int = 0
+    errored: int = 0
+    counted: int = 0
     issues: dict = field(default_factory=lambda: defaultdict(int))
+
+    def get_data(self):
+        return {
+            "updated": self.updated,
+            "created": self.created,
+            "errored": self.errored,
+            "counted": self.counted,
+            "issues": self.issues,
+        }
 
 
 class TypeCounter:
     """
     holds a nested counter structure.
 
-    for every ObjectTypenKey we keep a structure to track the total number of objects,
-     how many we've seen and a map counting different issue levels
-
-    {
-        ObjectTypenKeys.roltypen: (10, 10, None),
-        ObjectTypenKeys.zaaktypen: (20, 20, None),
-        ObjectTypenKeys.statustypen: (20, 20, None),
-        ObjectTypenKeys.resultaattypen: (30, 30, {JobLogLevel.warning: 2, JobLogLevel.error: 1}),
-        ObjectTypenKeys.informatieobjecttypen: (40, 40, None),
-        ObjectTypenKeys.zaakinformatieobjecttypen: (50, 50, {JobLogLevel.warning: 5}),
-    }
+    for every ObjectTypenKey we keep a structure to track the number of objects we
+     updated, created, errored and a map counting different issue levels
     """
 
     def __init__(self):
         self.data = defaultdict(TypeCounterData)
 
-    def increment_count(self, type_key):
+    def increment_updated(self, type_key):
         assert type_key in ObjectTypenKeys.values
-        self.data[type_key].count += 1
+        self.data[type_key].updated += 1
 
-    def set_count(self, type_key, value):
+    def increment_created(self, type_key):
         assert type_key in ObjectTypenKeys.values
-        self.data[type_key].count = value
+        self.data[type_key].created += 1
 
-    def set_total(self, type_key, total):
+    def increment_errored(self, type_key):
         assert type_key in ObjectTypenKeys.values
-        self.data[type_key].total = total
+        self.data[type_key].errored += 1
+
+    def increment_counted(self, type_key):
+        assert type_key in ObjectTypenKeys.values
+        self.data[type_key].counted += 1
 
     def increment_issue_count(self, type_key, level):
         assert type_key in ObjectTypenKeys.values
         assert level in JobLogLevel.values
         self.data[type_key].issues[level] += 1
 
-    def reset_counts(self):
-        for data in self.data.values():
-            data.count = 0
-
-    def reset_totals(self):
-        for data in self.data.values():
-            data.total = 0
-
     def reset_numbers(self):
         for data in self.data.values():
-            data.count = 0
-            data.total = 0
+            data.updated = 0
+            data.created = 0
+            data.errored = 0
 
     def reset_issues(self):
         for data in self.data.values():
             for level in data.issues:
                 del data.issues[level]
 
-    def set_total_from_dict(self, count_dict):
-        for key, value in count_dict.items():
-            self.set_count(key, 0)
-            self.set_total(key, value)
-
-    def set_count_and_total_from_dict(self, count_dict):
-        for key, value in count_dict.items():
-            self.set_count(key, value)
-            self.set_total(key, value)
-
     def get_data(self):
-        data = {
-            "data": {
-                k: (v.count, v.total, v.issues or None) for k, v in self.data.items()
-            }
-        }
+        data = {"data": {k: v.get_data() for k, v in self.data.items()}}
         return data
 
 
-def transform_statistics(raw_data):
+def transform_precheck_statistics(raw_data):
     """
-    Transform a dictionary of tuples with progress/result statistics into key/value rows for display
-
-    {
-        "data": {
-            ObjectTypenKeys.roltypen: (10, 10),
-            ObjectTypenKeys.zaaktypen: (20, 20),
-            ObjectTypenKeys.statustypen: (20, 20),
-            ObjectTypenKeys.resultaattypen: (30, 30, {JobLogLevel.warning: 2, JobLogLevel.error: 1}),
-            ObjectTypenKeys.informatieobjecttypen: (40, 40, None),
-            ObjectTypenKeys.zaakinformatieobjecttypen: (50, 50, {JobLogLevel.warning: 5}),
-        },
-    }
+    Transform a dictionary with progress/result statistics into key/value rows for display
 
     Output something like:
 
@@ -172,28 +146,41 @@ def transform_statistics(raw_data):
         ...
     ]
     """
+    # generate table even if we dont have data
+    if raw_data is None:
+        raw_data = dict()
+    data = raw_data.get("data", dict())
+
+    rows = [("", "errored, counted")]
+    for key in ObjectTypenKeys.values:
+        label = ObjectTypenKeys.values[key]
+        value = data[key] if key in data else dict()
+
+        info_fmt = _format_logstats_dict(value.get("issues"))
+        stat_fmt = f"{value.get('errored', 0)} / {value.get('counted', 0)}{info_fmt}"
+
+        rows.append((label, stat_fmt))
+
+    return rows
+
+
+def transform_import_statistics(raw_data):
+    """
+    Transform a dictionary with progress/result statistics into key/value rows for display
+    """
 
     # generate table even if we dont have data
     if raw_data is None:
         raw_data = dict()
     data = raw_data.get("data", dict())
 
-    rows = []
+    rows = [("", "updated, created, errored of total")]
     for key in ObjectTypenKeys.values:
         label = ObjectTypenKeys.values[key]
+        value = data[key] if key in data else dict()
 
-        # check if we got a value or show 0/0
-        if key in data:
-            count, total, logstats = data[key]
-        else:
-            # default
-            count, total, logstats = (0, 0, None)
-
-        # collect formatted
-        info_fmt = _format_logstats_dict(logstats)
-        if info_fmt:
-            info_fmt = " " + info_fmt
-        stat_fmt = f"{count} / {total}{info_fmt}"
+        info_fmt = _format_logstats_dict(value.get("issues"))
+        stat_fmt = f"{value.get('updated', 0)} / {value.get('created', 0)} / {value.get('errored', 0)} of {value.get('counted', 0)}{info_fmt}"
 
         rows.append((label, stat_fmt))
 
@@ -223,7 +210,7 @@ def _format_logstats_dict(info):
             parts.append(f"{info[level]} {JobLogLevel.labels[level].lower()}s")
 
     if parts:
-        return f"({', '.join(parts)})"
+        return f" ({', '.join(parts)})"
     else:
         return ""
 

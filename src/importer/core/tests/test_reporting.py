@@ -12,7 +12,8 @@ from importer.core.constants import ObjectTypenKeys
 from importer.core.reporting import (
     ImportSession,
     format_exception,
-    transform_statistics,
+    transform_import_statistics,
+    transform_precheck_statistics,
 )
 from importer.core.tests.factories import JobFactory
 
@@ -52,11 +53,13 @@ class ImportSessionUtilsTest(TestCase):
 
         expected = {
             "data": {
-                ObjectTypenKeys.zaaktypen: [
-                    0,
-                    0,
-                    {JobLogLevel.warning: 1, JobLogLevel.error: 2},
-                ]
+                ObjectTypenKeys.zaaktypen: {
+                    "created": 0,
+                    "updated": 0,
+                    "errored": 0,
+                    "counted": 0,
+                    "issues": {JobLogLevel.warning: 1, JobLogLevel.error: 2},
+                }
             }
         }
         data = session.counter.get_data()
@@ -73,11 +76,10 @@ class ImportSessionUtilsTest(TestCase):
         job = JobFactory()
         session = ImportSession(job, save_logs=True)
 
-        session.counter.set_count(ObjectTypenKeys.roltypen, 2)
-        session.counter.set_total(ObjectTypenKeys.roltypen, 3)
-
-        session.counter.increment_count(ObjectTypenKeys.zaaktypen)
-        session.counter.increment_count(ObjectTypenKeys.zaaktypen)
+        session.counter.increment_updated(ObjectTypenKeys.roltypen)
+        session.counter.increment_created(ObjectTypenKeys.roltypen)
+        session.counter.increment_counted(ObjectTypenKeys.roltypen)
+        session.counter.increment_errored(ObjectTypenKeys.roltypen)
 
         session.counter.increment_issue_count(
             ObjectTypenKeys.statustypen, JobLogLevel.info
@@ -94,21 +96,24 @@ class ImportSessionUtilsTest(TestCase):
 
         expected = {
             "data": {
-                ObjectTypenKeys.roltypen: [
-                    2,
-                    3,
-                    None,
-                ],
-                ObjectTypenKeys.zaaktypen: [
-                    2,
-                    0,
-                    None,
-                ],
-                ObjectTypenKeys.statustypen: [
-                    0,
-                    0,
-                    {JobLogLevel.warning: 1, JobLogLevel.error: 2, JobLogLevel.info: 1},
-                ],
+                ObjectTypenKeys.roltypen: {
+                    "created": 1,
+                    "updated": 1,
+                    "errored": 1,
+                    "counted": 1,
+                    "issues": {},
+                },
+                ObjectTypenKeys.statustypen: {
+                    "created": 0,
+                    "updated": 0,
+                    "errored": 0,
+                    "counted": 0,
+                    "issues": {
+                        JobLogLevel.warning: 1,
+                        JobLogLevel.info: 1,
+                        JobLogLevel.error: 2,
+                    },
+                },
             }
         }
         data = session.counter.get_data()
@@ -123,38 +128,33 @@ class ImportSessionUtilsTest(TestCase):
 
 
 class ResportingUtilsTest(TestCase):
-    def test_transform_statistics(self):
+    def test_transform_precheck_statistics(self):
         data = {
             "data": {
-                ObjectTypenKeys.resultaattypen: (
-                    28,
-                    30,
-                    {JobLogLevel.warning: 2, JobLogLevel.error: 1},
-                ),
-                ObjectTypenKeys.informatieobjecttypen: (38, 40, None),
-                ObjectTypenKeys.zaakinformatieobjecttypen: (
-                    48,
-                    50,
-                    {JobLogLevel.warning: 5},
-                ),
-                ObjectTypenKeys.zaaktypen: (1, 3, None),
-                ObjectTypenKeys.roltypen: (8, 10, None),
-                ObjectTypenKeys.statustypen: (18, 20, None),
+                ObjectTypenKeys.resultaattypen: {
+                    "created": 999,  # not used here
+                    "updated": 999,  # not used here
+                    "errored": 5,
+                    "counted": 35,
+                    "issues": {JobLogLevel.warning: 2, JobLogLevel.error: 1},
+                },
             },
         }
         expected = [
-            (_("Roltypen"), "8 / 10"),
-            (_("Zaaktypen"), "1 / 3"),
-            (_("Statustypen"), "18 / 20"),
-            (_("Resultaattypen"), "28 / 30 (2 warnings, 1 errors)"),
-            (_("Informatieobjecttypen"), "38 / 40"),
-            (_("Zaakinformatieobjecttypen"), "48 / 50 (5 warnings)"),
+            ("", "errored, counted"),
+            (_("Roltypen"), "0 / 0"),
+            (_("Zaaktypen"), "0 / 0"),
+            (_("Statustypen"), "0 / 0"),
+            (_("Resultaattypen"), "5 / 35 (2 warnings, 1 errors)"),
+            (_("Informatieobjecttypen"), "0 / 0"),
+            (_("Zaakinformatieobjecttypen"), "0 / 0"),
         ]
-        actual = transform_statistics(data)
+        actual = transform_precheck_statistics(data)
         self.assertEqual(actual, expected)
 
-    def test_transform_statistics_empty(self):
+    def test_transform_precheck_statistics_empty(self):
         expected = [
+            ("", "errored, counted"),
             (_("Roltypen"), "0 / 0"),
             (_("Zaaktypen"), "0 / 0"),
             (_("Statustypen"), "0 / 0"),
@@ -162,9 +162,48 @@ class ResportingUtilsTest(TestCase):
             (_("Informatieobjecttypen"), "0 / 0"),
             (_("Zaakinformatieobjecttypen"), "0 / 0"),
         ]
-        actual = transform_statistics({})
+        actual = transform_precheck_statistics({})
         self.assertEqual(actual, expected)
-        actual = transform_statistics({"data": {}})
+        actual = transform_precheck_statistics({"data": {}})
+        self.assertEqual(actual, expected)
+
+    def test_transform_import_statistics(self):
+        data = {
+            "data": {
+                ObjectTypenKeys.resultaattypen: {
+                    "created": 10,
+                    "updated": 20,
+                    "errored": 5,
+                    "counted": 35,
+                    "issues": {JobLogLevel.warning: 2, JobLogLevel.error: 1},
+                },
+            },
+        }
+        expected = [
+            ("", "updated, created, errored of total"),
+            (_("Roltypen"), "0 / 0 / 0 of 0"),
+            (_("Zaaktypen"), "0 / 0 / 0 of 0"),
+            (_("Statustypen"), "0 / 0 / 0 of 0"),
+            (_("Resultaattypen"), "20 / 10 / 5 of 35 (2 warnings, 1 errors)"),
+            (_("Informatieobjecttypen"), "0 / 0 / 0 of 0"),
+            (_("Zaakinformatieobjecttypen"), "0 / 0 / 0 of 0"),
+        ]
+        actual = transform_import_statistics(data)
+        self.assertEqual(actual, expected)
+
+    def test_transform_import_statistics_empty(self):
+        expected = [
+            ("", "updated, created, errored of total"),
+            (_("Roltypen"), "0 / 0 / 0 of 0"),
+            (_("Zaaktypen"), "0 / 0 / 0 of 0"),
+            (_("Statustypen"), "0 / 0 / 0 of 0"),
+            (_("Resultaattypen"), "0 / 0 / 0 of 0"),
+            (_("Informatieobjecttypen"), "0 / 0 / 0 of 0"),
+            (_("Zaakinformatieobjecttypen"), "0 / 0 / 0 of 0"),
+        ]
+        actual = transform_import_statistics({})
+        self.assertEqual(actual, expected)
+        actual = transform_import_statistics({"data": {}})
         self.assertEqual(actual, expected)
 
 

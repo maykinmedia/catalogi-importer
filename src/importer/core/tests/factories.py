@@ -60,12 +60,20 @@ class RunningJobFactory(JobFactory):
 
     statistics = {
         "data": {
-            ObjectTypenKeys.statustypen: (10, 20, {JobLogLevel.warning: 3}),
-            ObjectTypenKeys.roltypen: (
-                5,
-                10,
-                {JobLogLevel.warning: 2, JobLogLevel.error: 1},
-            ),
+            ObjectTypenKeys.statustypen: {
+                "created": 10,
+                "updated": 20,
+                "errored": 5,
+                "counted": 35,
+                "issues": {JobLogLevel.warning: 3},
+            },
+            ObjectTypenKeys.roltypen: {
+                "created": 1,
+                "updated": 2,
+                "errored": 3,
+                "counted": 6,
+                "issues": {JobLogLevel.warning: 2, JobLogLevel.error: 1},
+            },
         }
     }
 
