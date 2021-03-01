@@ -163,16 +163,15 @@ def get_resultaattype_omschrijving(
     session, log_scope, resultaattype: etree.ElementBase
 ) -> str:
     # Infer URL from naam-model
-    omschriving = find(resultaattype, "velden/naam-model", False)
+    omschrijving = find(resultaattype, "velden/naam-model", False)
     resultaattype_omschrijvingen = get_resultaattype_omschrijvingen()
     filtered_omschrijvingen = [
-        r for r in resultaattype_omschrijvingen if r["omschrijving"] == omschriving
+        r for r in resultaattype_omschrijvingen if r["omschrijving"] == omschrijving
     ]
 
     if not filtered_omschrijvingen:
         session.log_warning(
-            f"{log_scope} selectielijst API doesn't have matching resultaattypeomschrijving '{omschriving}'."
-            f"It will be set as '{DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN}'",
+            f'{log_scope} Used default value for "Resultaattype.omschrijving" ({DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN}): Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
             ObjectTypenKeys.resultaattypen,
         )
         return DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN
@@ -186,7 +185,7 @@ def get_resultaat(
     resultaat_number = get_resultaat_number(resultaattype)
     if not resultaat_number:
         raise ParserException(
-            f"{log_scope} the resultaattype doesn't have selectielijst resultaat number"
+            f'{log_scope} Imported "resultaat" does not contain a resultaat number to find a matching entry in the Selectielijst API.'
         )
 
     resultaten = get_resultaaten()
@@ -197,7 +196,7 @@ def get_resultaat(
     ]
     if not filtered_resultaaten:
         raise ParserException(
-            f"{log_scope} selectielijst API doesn't have matching resultaat with volledig_nummer '{resultaat_number}'"
+            f'{log_scope} Imported "resultaat" does not contain a valid resultaat number ({resultaat_number}) to match "volledigNummer" in the Selectielijst API.'
         )
 
     return filtered_resultaaten[0]["url"]
@@ -254,14 +253,14 @@ def construct_zaaktype_data(
             find(fields, "afdoeningstermijn-eenheid"),
         )
         session.log_warning(
-            f"{log_scope} cannot find wettelijke-afdoeningstermijn so doorlooptijd used afdoeningstermijn '{doorlooptijd}' instead of "
+            f'{log_scope} Used "afdoeningstermijn" ({doorlooptijd}) for "Zaaktype.doorlooptijd": Import has no value for "wettelijke-afdoeningstermijn".'
         )
 
     # FIXME cam't be set without verlengingstermijn field
     verlengingMogelijk = get_boolean(find(fields, "beroep-mogelijk"))
     if verlengingMogelijk:
         session.log_error(
-            f"{log_scope} verlengingMogelijk is set but we don't have a source for verlengingstermijn"
+            f'{log_scope} Cannot set "Zaaktype.verlengingMogelijk" to True: Import indicated "beroep-mogelijk" is True but Open Zaak requires "Zaaktype.verlengingstermijn" to be filled when "Zaaktype.verlengingMogelijk" is True.'
         )
         # set to false to complete
         verlengingMogelijk = False
@@ -493,7 +492,7 @@ def parse_xml(
             except ParserException as exc:
                 session.counter.increment_errored(ObjectTypenKeys.roltypen)
                 session.log_error(
-                    f"{log_scope} roltype '{roltype.get('omschrijving')}' can't be parsed due to: {format_exception(exc)}",
+                    f"{log_scope} Imported roltype '{roltype.get('omschrijving')}' cannot be parsed: {format_exception(exc)}",
                     ObjectTypenKeys.roltypen,
                 )
                 continue
@@ -509,7 +508,7 @@ def parse_xml(
             except ParserException as exc:
                 session.counter.increment_errored(ObjectTypenKeys.statustypen)
                 session.log_error(
-                    f"{log_scope} statustype '{statustype.get('volgnummer')}' can't be parsed due to: {format_exception(exc)}",
+                    f"{log_scope} Imported statustype '{statustype.get('volgnummer')}' cannot be parsed: {format_exception(exc)}",
                     ObjectTypenKeys.statustypen,
                 )
                 continue
@@ -528,7 +527,7 @@ def parse_xml(
             except ParserException as exc:
                 session.counter.increment_errored(ObjectTypenKeys.resultaattypen)
                 session.log_error(
-                    f"{log_scope} resultaattype '{resultaattype.get('id')}' can't be parsed due to: {format_exception(exc)}",
+                    f"{log_scope} Imported resultaattype '{resultaattype.get('id')}' cannot be parsed: {format_exception(exc)}",
                     ObjectTypenKeys.resultaattypen,
                 )
                 continue
@@ -542,7 +541,7 @@ def parse_xml(
             except ParserException as exc:
                 session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
                 session.log_error(
-                    f"{log_scope} iotype '{iotype.get('omschrijving')}' can't be parsed due to: {format_exception(exc)}",
+                    f"{log_scope} Imported documenttype '{iotype.get('omschrijving')}' cannot be parsed: {format_exception(exc)}",
                     ObjectTypenKeys.informatieobjecttypen,
                 )
                 continue
@@ -560,7 +559,7 @@ def parse_xml(
                     ObjectTypenKeys.zaakinformatieobjecttypen
                 )
                 session.log_error(
-                    f"{log_scope} ziotype '{ziotype.get('volgnummer')}' can't be parsed due to: {format_exception(exc)}",
+                    f"{log_scope} Imported documenttype-zaaktype relatie '{ziotype.get('volgnummer')}' cannot be parsed: {format_exception(exc)}",
                     ObjectTypenKeys.zaakinformatieobjecttypen,
                 )
                 continue
@@ -583,7 +582,7 @@ def parse_xml(
                 and iotypen_dict[omschrijving]["beginGeldigheid"]
             ):
                 session.log_warning(
-                    f"{log_scope} informatieobjectype '{omschrijving}' there are different informatieobjectypen with the same omschrijving '{iotype_data['omschrijving']}'",
+                    f"{log_scope} Skipping creation of \"Informatieobjectype\" ({omschrijving}): Import contains multiple \"documenttypen\" with the same omschrijving ({iotype_data['omschrijving']})",
                     ObjectTypenKeys.informatieobjecttypen,
                 )
             else:
