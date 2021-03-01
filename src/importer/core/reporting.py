@@ -256,7 +256,7 @@ def format_zgw_client_error(exc):
 
     """
     info = exc.args[0]
-    if info["code"] == "invalid":
+    if info.get("code") == "invalid":
         params = info["invalidParams"]
 
         # lets add 1) numbers to multiple 2) errors
@@ -272,7 +272,7 @@ def format_zgw_client_error(exc):
         return f"{title}: {message}"
     else:
         # TODO support more types
-        return f"{info['title']}"
+        return info.get("title") or str(exc)
 
 
 def format_zgw_invalid_param(param):

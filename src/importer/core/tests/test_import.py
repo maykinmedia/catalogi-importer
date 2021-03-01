@@ -1,5 +1,3 @@
-from pprint import pprint
-
 from django.core.files.base import ContentFile
 from django.test import TestCase
 
@@ -148,13 +146,25 @@ zaaktypeinformatieobjecttype_list_response = {
     "previous": None,
 }
 
+error_response = {
+    "type": "http://localhost:9000/ref/fouten/ValidationError/",
+    "code": "invalid",
+    "title": "Error title.",
+    "status": 400,
+    "detail": "",
+    "instance": "urn:uuid:51e15b8d-98e7-4284-9869-94cbcef00dxx",
+    "invalidParams": [
+        {
+            "name": "nonFieldErrors",
+            "code": "unique",
+            "reason": "Foo-bar-reason",
+        }
+    ],
+}
+
 
 class ImportTest(TestCaseMixin, TestCase):
-    @requests_mock.Mocker()
-    def test_positive_create_flow(self, m):
-        """
-        Test an mocked import on an empty catalog
-        """
+    def setup_import_job(self, m):
         self.setup_selectielijst_service()
         self.setup_selectielijst_mocks(m)
 
@@ -188,6 +198,14 @@ class ImportTest(TestCaseMixin, TestCase):
         job.source.save(
             "foo.xml", ContentFile(self.get_test_data("example-stripped-single.xml"))
         )
+        return job
+
+    @requests_mock.Mocker()
+    def test_positive_create_flow(self, m):
+        """
+        Test a mocked import on an empty catalog
+        """
+        job = self.setup_import_job(m)
 
         m.get(
             "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
@@ -255,7 +273,6 @@ class ImportTest(TestCaseMixin, TestCase):
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
-        pprint(messages)
         self.assertEqual(len(messages), 6)  # we got 6 types of resources
 
         expected = [
@@ -268,46 +285,28 @@ class ImportTest(TestCaseMixin, TestCase):
         ]
         self.assertEqual(messages, expected)
 
+        # one of everything
+        self.assertEqual(
+            job.statistics,
+            {
+                "data": {
+                    "rt": [1, 1, None],
+                    "st": [1, 1, None],
+                    "zt": [1, 1, None],
+                    "iot": [1, 1, None],
+                    "rst": [1, 1, None],
+                    "ziot": [1, 1, None],
+                }
+            },
+        )
         self.assertEqual(job.state, JobState.completed)
 
     @requests_mock.Mocker()
     def test_positive_update_flow(self, m):
         """
-        Test an mocked import on an catalog with existing published items
+        Test a mocked import on an catalog with existing published items
         """
-        self.setup_selectielijst_service()
-        self.setup_selectielijst_mocks(m)
-
-        m.get(
-            "http://test/api/schema.yaml",
-            content=self.get_test_data("openzaak-openapi.yaml"),
-        )
-        service = ZGWServiceFactory(
-            api_root="http://test/api",
-            oas="http://test/api/schema.yaml",
-            api_type=APITypes.ztc,
-        )
-
-        m.get(
-            "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
-            json=catalog_response,
-        )
-        catalog = CatalogConfigFactory(
-            service=service, uuid="7c0e6595-adbe-45b4-b092-31ba75c7dd74"
-        )
-        # run the url reverse
-        catalog.clean()
-        catalog.save()
-
-        self.assertEqual(
-            catalog.url,
-            "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
-        )
-
-        job = QueuedJobFactory(catalog=catalog)
-        job.source.save(
-            "foo.xml", ContentFile(self.get_test_data("example-stripped-single.xml"))
-        )
+        job = self.setup_import_job(m)
 
         m.get(
             "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
@@ -403,46 +402,28 @@ class ImportTest(TestCaseMixin, TestCase):
         ]
         self.assertEqual(messages, expected)
 
+        # one of everything
+        self.assertEqual(
+            job.statistics,
+            {
+                "data": {
+                    "rt": [1, 1, None],
+                    "st": [1, 1, None],
+                    "zt": [1, 1, None],
+                    "iot": [1, 1, None],
+                    "rst": [1, 1, None],
+                    "ziot": [1, 1, None],
+                }
+            },
+        )
         self.assertEqual(job.state, JobState.completed)
 
     @requests_mock.Mocker()
     def test_positive_update_flow_concepts(self, m):
         """
-        Test an mocked import on an catalog with existing concept items
+        Test a mocked import on an catalog with existing concept items
         """
-        self.setup_selectielijst_service()
-        self.setup_selectielijst_mocks(m)
-
-        m.get(
-            "http://test/api/schema.yaml",
-            content=self.get_test_data("openzaak-openapi.yaml"),
-        )
-        service = ZGWServiceFactory(
-            api_root="http://test/api",
-            oas="http://test/api/schema.yaml",
-            api_type=APITypes.ztc,
-        )
-
-        m.get(
-            "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
-            json=catalog_response,
-        )
-        catalog = CatalogConfigFactory(
-            service=service, uuid="7c0e6595-adbe-45b4-b092-31ba75c7dd74"
-        )
-        # run the url reverse
-        catalog.clean()
-        catalog.save()
-
-        self.assertEqual(
-            catalog.url,
-            "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
-        )
-
-        job = QueuedJobFactory(catalog=catalog)
-        job.source.save(
-            "foo.xml", ContentFile(self.get_test_data("example-stripped-single.xml"))
-        )
+        job = self.setup_import_job(m)
 
         m.get(
             "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
@@ -526,6 +507,67 @@ class ImportTest(TestCaseMixin, TestCase):
         ]
         self.assertEqual(messages, expected)
 
+        # one of everything
+        self.assertEqual(
+            job.statistics,
+            {
+                "data": {
+                    "rt": [1, 1, None],
+                    "st": [1, 1, None],
+                    "zt": [1, 1, None],
+                    "iot": [1, 1, None],
+                    "rst": [1, 1, None],
+                    "ziot": [1, 1, None],
+                }
+            },
+        )
+        self.assertEqual(job.state, JobState.completed)
+
+    @requests_mock.Mocker()
+    def test_negative_create_flow(self, m):
+        """
+        Test an mocked import on an empty catalog
+        """
+
+        job = self.setup_import_job(m)
+
+        m.get(
+            "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
+            json=error_response,
+            status_code=404,
+        )
+
+        # for debugging run the import function
+        # run_import(job)
+
+        # # test the Celery task function
+        import_job_task(job.id)
+
+        # see what happened
+        job.refresh_from_db()
+
+        logs = chop_precheck_from_logs(job.joblog_set.all())
+        messages = [log.message for log in logs]
+        self.assertEqual(len(messages), 1)
+        expected = [
+            "informatieobjecttypen can't be created: Error title: Foo-bar-reason",
+        ]
+        self.assertEqual(messages, expected)
+
+        # nothing but an error
+        self.assertEqual(
+            job.statistics,
+            {
+                "data": {
+                    "rt": [0, 1, None],
+                    "st": [0, 1, None],
+                    "zt": [0, 1, None],
+                    "iot": [0, 1, {"error": 1}],
+                    "rst": [0, 1, None],
+                    "ziot": [0, 1, None],
+                }
+            },
+        )
         self.assertEqual(job.state, JobState.completed)
 
 
