@@ -13,7 +13,7 @@ from importer.core.reporting import format_exception
 logger = logging.getLogger(__name__)
 
 
-FLUSH_OBJECTS = 1 + 10
+FLUSH_OBJECTS = 10
 
 
 class LoaderException(Exception):
@@ -64,14 +64,18 @@ def update_zaaktype(session, zaaktype_data: dict):
         session.counter.increment_updated(ObjectTypenKeys.zaaktypen)
     else:
         # close old resource with start-date of the new resource
-        client.partial_update(
-            "zaaktype",
-            {"eindeGeldigheid": zaaktype_data["beginGeldigheid"]},
-            url=remote["url"],
-        )
-        session.log_info(
-            f"{log_scope} closed old resource on {zaaktype_data['beginGeldigheid']}: {remote['url']}"
-        )
+        if session.job.close_published:
+            client.partial_update(
+                "zaaktype",
+                {"eindeGeldigheid": zaaktype_data["beginGeldigheid"]},
+                url=remote["url"],
+            )
+            session.log_info(
+                f"{log_scope} closed old resource on {zaaktype_data['beginGeldigheid']}: {remote['url']}"
+            )
+        else:
+            session.log_info(f"{log_scope} existing published resource stays active")
+
         # create new resource
         zaaktype = client.create("zaaktype", data=zaaktype_data)
         session.log_info(f"{log_scope} created new version")
@@ -95,10 +99,10 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     for iotype_data in iotypen_data:
         iotype_data["catalogus"] = session.catalogus_url
         if not iotype_data["beginGeldigheid"]:
-            today = date.today().isoformat()
-            iotype_data["beginGeldigheid"] = today
+            start_date = session.job.start_date.isoformat()
+            iotype_data["beginGeldigheid"] = start_date
             session.log_info(
-                f"iotype '{iotype_data['omschrijving']}' doesn't have beginGeldigheid. It's set as today ({today})."
+                f"iotype '{iotype_data['omschrijving']}' doesn't have beginGeldigheid. It's set as today ({start_date})."
             )
 
     # fetch existing and create lookup
@@ -132,17 +136,21 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
             else:
                 # close old resource with start-date of the new resource
-                client.partial_update(
-                    "informatieobjecttype",
-                    {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
-                    url=remote["url"],
-                )
-                session.log_info(
-                    f"{log_scope} closed old resource on {iotype_data['beginGeldigheid']}: {remote['url']}"
-                )
+                if session.job.close_published:
+                    session.log_info(f"{log_scope} closed existing published resource")
+                    client.partial_update(
+                        "informatieobjecttype",
+                        {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
+                        url=remote["url"],
+                    )
+                else:
+                    session.log_info(
+                        f"{log_scope} existing published resource stays active"
+                    )
+
                 # create new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
-                session.log_info(f"{log_scope} created new version")
+                session.log_info(f"{log_scope} started new concept")
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
         except (ClientError, HTTPError) as exc:
             session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)

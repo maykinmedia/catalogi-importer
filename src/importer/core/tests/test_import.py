@@ -399,9 +399,9 @@ class ImportTest(TestCaseMixin, TestCase):
         self.assertEqual(len(messages), 8)  # we got 6 types of resources and closed 2
 
         expected = [
-            "informatieobjecttype 'Onderzoeksstuk' closed old resource on 2020-07-06: http://test/api/informatieobjecttypen/1",
-            "informatieobjecttype 'Onderzoeksstuk' created new version",
-            "zaaktype B1796 closed old resource on 2020-07-06: http://test/api/zaaktypen/1",
+            "informatieobjecttype 'Onderzoeksstuk' existing published resource stays active",
+            "informatieobjecttype 'Onderzoeksstuk' started new concept",
+            "zaaktype B1796 existing published resource stays active",
             "zaaktype B1796 created new version",
             "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
             "zaaktype B1796: statustype volgnummer='1' updated existing",

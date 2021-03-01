@@ -438,7 +438,7 @@ def construct_iotype_data(session, log_scope, document: etree.ElementBase) -> di
     if not iotype_data["beginGeldigheid"]:
         # note we cant set this here because some logic depends on it
         session.log_info(
-            f"{log_scope} doesn't have beginGeldigheid. It will be set to today.",
+            f"{log_scope} doesn't have beginGeldigheid. It will be set to '{session.job.start_date.isoformat()}'.",
             ObjectTypenKeys.informatieobjecttypen,
         )
     return iotype_data

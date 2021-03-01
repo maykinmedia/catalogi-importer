@@ -1,3 +1,4 @@
+from datetime import date
 from urllib.parse import urljoin
 
 from django.contrib.postgres.fields import JSONField
@@ -141,6 +142,16 @@ class Job(models.Model):
         storage=private_storage,
         validators=[FileExtensionValidator(["xml"])],
         help_text=_("i-Navigator XML export file."),
+    )
+    start_date = models.DateField(
+        _("Start date"),
+        default=date.today,
+        help_text=_("Default start date of new records that have nothing set."),
+    )
+    close_published = models.BooleanField(
+        _("Close published records"),
+        default=False,
+        help_text=_("Close existing records if a new version is created"),
     )
     state = models.CharField(
         _("State"),

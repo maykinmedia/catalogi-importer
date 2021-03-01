@@ -91,6 +91,8 @@ class JobAdmin(admin.ModelAdmin):
                 "catalog",
                 "year",
                 "source",
+                "start_date",
+                "close_published",
             ]
         elif job.state == JobState.precheck:
             return [
@@ -98,6 +100,8 @@ class JobAdmin(admin.ModelAdmin):
                 "catalog_fmt",
                 "year_fmt",
                 "source_fmt",
+                "start_date",
+                "close_published",
                 "created_at",
             ]
         else:
@@ -106,6 +110,8 @@ class JobAdmin(admin.ModelAdmin):
                 "year_fmt",
                 "source_fmt",
                 "state",
+                "start_date",
+                "close_published",
                 "created_at",
                 "started_at",
                 "stopped_at",
@@ -126,12 +132,16 @@ class JobAdmin(admin.ModelAdmin):
             "catalog_fmt",
             "year_fmt",
             "source_fmt",
+            "start_date",
+            "close_published",
         }
         if not job:
             return fields - {
                 "catalog",
                 "year",
                 "source",
+                "start_date",
+                "close_published",
             }
         elif job.state == JobState.precheck:
             return fields - {
