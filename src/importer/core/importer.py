@@ -6,7 +6,7 @@ from zds_client import ClientError
 
 from importer.core.constants import ObjectTypenKeys
 from importer.core.loader import load_data
-from importer.core.parser import extract_counts, parse_xml
+from importer.core.parser import parse_xml
 from importer.core.reporting import ImportSession
 
 logger = logging.getLogger(__name__)
@@ -51,8 +51,7 @@ def precheck_import(job):
 
     zaaktypen, iotypen = parse_xml(session, tree, job.year)
 
-    counts = extract_counts(zaaktypen, iotypen)
-    session.counter.set_count_and_total_from_dict(counts)
+    session.flush_counts()
 
     for obj in zaaktypen:
         session.log_info(
@@ -80,8 +79,7 @@ def run_import(job):
     zaaktypen, iotypen = parse_xml(session, tree, job.year)
 
     # keep issues but reset counters
-    counts = extract_counts(zaaktypen, iotypen)
-    session.counter.set_total_from_dict(counts)
+    session.counter.reset_numbers()
     session.flush_counts()
 
     session.log_info("End of precheck, start loading..")

@@ -13,6 +13,9 @@ from importer.core.reporting import format_exception
 logger = logging.getLogger(__name__)
 
 
+FLUSH_OBJECTS = 1 + 10
+
+
 class LoaderException(Exception):
     pass
 
@@ -106,7 +109,10 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     iotypen = []
 
     # update/create resources
-    for iotype_data in iotypen_data:
+    for i, iotype_data in enumerate(iotypen_data, start=1):
+        if i % FLUSH_OBJECTS == 0:
+            session.flush_counts()
+
         log_scope = f"informatieobjecttype '{iotype_data['omschrijving']}'"
         try:
             remote = remote_map.get(iotype_data["omschrijving"])
@@ -114,11 +120,13 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                 # new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
                 session.log_info(f"{log_scope} created new")
+                session.counter.increment_created(ObjectTypenKeys.informatieobjecttypen)
             elif remote["concept"]:
                 iotype = client.update(
                     "informatieobjecttype", iotype_data, url=remote["url"]
                 )
                 session.log_info(f"{log_scope} updated existing concept")
+                session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
             else:
                 # close old resource with start-date of the new resource
                 client.partial_update(
@@ -131,7 +139,10 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                 session.log_info(
                     f"{log_scope} closed published resource and started new concept"
                 )
+                session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
+
         except (ClientError, HTTPError) as exc:
+            session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
             session.log_error(
                 f"{log_scope} can't be created: {format_exception(exc)}",
                 ObjectTypenKeys.informatieobjecttypen,
@@ -139,7 +150,6 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
             continue
         else:
             iotypen.append(iotype)
-            session.counter.increment_count(ObjectTypenKeys.informatieobjecttypen)
 
     session.flush_counts()
 
@@ -172,7 +182,10 @@ def update_zaaktype_children(
     objects = []
 
     # update/create resources
-    for i, child_data in enumerate(children_data):
+    for i, child_data in enumerate(children_data, start=1):
+        if i % FLUSH_OBJECTS == 0:
+            session.flush_counts()
+
         _log_scope = f"{log_scope} {resource} {match_field}='{child_data[match_field]}'"
         child_data["zaaktype"] = zaaktype_url
         try:
@@ -180,18 +193,21 @@ def update_zaaktype_children(
             remote = remote_map.get(child_data[match_field])
             if remote:
                 obj = client.update(resource, child_data, url=remote["url"])
+                session.counter.increment_updated(type_key)
                 session.log_info(f"{_log_scope} updated existing concept")
             else:
                 obj = client.create(resource, child_data)
+                session.counter.increment_created(type_key)
                 session.log_info(f"{_log_scope} created new")
+
         except (ClientError, HTTPError) as exc:
+            session.counter.increment_errored(type_key)
             session.log_error(
                 f"{_log_scope} can't be created: {format_exception(exc)}", type_key
             )
             continue
         else:
             objects.append(obj)
-            session.counter.increment_count(type_key)
 
     session.flush_counts()
 
@@ -252,13 +268,12 @@ def load_data(
         try:
             zaaktype = update_zaaktype(session, zaaktype_data)
         except (ClientError, HTTPError) as exc:
+            session.counter.increment_errored(ObjectTypenKeys.zaaktypen)
             session.log_error(
                 f"{log_scope} can't be created: {format_exception(exc)}",
                 ObjectTypenKeys.zaaktypen,
             )
             continue
-        else:
-            session.counter.increment_count(ObjectTypenKeys.zaaktypen)
 
         session.flush_counts()
 

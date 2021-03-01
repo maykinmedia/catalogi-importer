@@ -15,6 +15,7 @@ from .constants import (
     ObjectTypenKeys,
     RichtingChoices,
 )
+from .reporting import format_exception
 from .selectielijst import (
     get_procestypen,
     get_resultaaten,
@@ -474,21 +475,45 @@ def parse_xml(
             zaaktype_data = construct_zaaktype_data(
                 session, log_scope, process, processtype_year
             )
+            session.counter.increment_counted(ObjectTypenKeys.zaaktypen)
         except ParserException as exc:
+            session.counter.increment_errored(ObjectTypenKeys.zaaktypen)
             session.log_error(
-                str(exc),
+                format_exception(exc),
                 ObjectTypenKeys.zaaktypen,
             )
             continue
 
-        roltypen_data = [
-            construct_roltype_data(session, log_scope, roltype)
-            for roltype in process.find("roltypen")
-        ]
-        statustype_data = [
-            construct_statustype_data(session, log_scope, statustype)
-            for statustype in process.find("statustypen")
-        ]
+        roltypen_data = []
+        for roltype in process.find("roltypen"):
+            try:
+                rolype_data = construct_roltype_data(session, log_scope, roltype)
+                roltypen_data.append(rolype_data)
+                session.counter.increment_counted(ObjectTypenKeys.roltypen)
+            except ParserException as exc:
+                session.counter.increment_errored(ObjectTypenKeys.roltypen)
+                session.log_error(
+                    f"{log_scope} roltype '{roltype.get('omschrijving')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.roltypen,
+                )
+                continue
+
+        statustypen_data = []
+        for statustype in process.find("statustypen"):
+            try:
+                statusype_data = construct_statustype_data(
+                    session, log_scope, statustype
+                )
+                statustypen_data.append(statusype_data)
+                session.counter.increment_counted(ObjectTypenKeys.statustypen)
+            except ParserException as exc:
+                session.counter.increment_errored(ObjectTypenKeys.statustypen)
+                session.log_error(
+                    f"{log_scope} statustype '{statustype.get('volgnummer')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.statustypen,
+                )
+                continue
+
         resultaattypen_data = []
         for resultaattype in process.find("resultaattypen"):
             try:
@@ -498,27 +523,51 @@ def parse_xml(
                     resultaattype,
                     zaaktype_data["selectielijstProcestype"],
                 )
+                resultaattypen_data.append(resultaatype_data)
+                session.counter.increment_counted(ObjectTypenKeys.resultaattypen)
             except ParserException as exc:
+                session.counter.increment_errored(ObjectTypenKeys.resultaattypen)
                 session.log_error(
-                    f"{log_scope} resultaattype '{resultaattype.get('id')}' can't be parsed due to: {exc}",
+                    f"{log_scope} resultaattype '{resultaattype.get('id')}' can't be parsed due to: {format_exception(exc)}",
                     ObjectTypenKeys.resultaattypen,
                 )
                 continue
-            else:
-                resultaattypen_data.append(resultaatype_data)
 
-        iotypen_data = [
-            construct_iotype_data(session, log_scope, document)
-            for document in process.find("documenttypen")
-        ]
-        ziotypen_data = [
-            construct_ziotype_data(session, log_scope, document)
-            for document in process.find("documenttypen")
-        ]
+        iotypen_data = []
+        for iotype in process.find("documenttypen"):
+            try:
+                ioype_data = construct_iotype_data(session, log_scope, iotype)
+                iotypen_data.append(ioype_data)
+                session.counter.increment_counted(ObjectTypenKeys.informatieobjecttypen)
+            except ParserException as exc:
+                session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
+                session.log_error(
+                    f"{log_scope} iotype '{iotype.get('omschrijving')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.informatieobjecttypen,
+                )
+                continue
+
+        ziotypen_data = []
+        for ziotype in process.find("documenttypen"):
+            try:
+                zioype_data = construct_ziotype_data(session, log_scope, ziotype)
+                ziotypen_data.append(zioype_data)
+                session.counter.increment_counted(
+                    ObjectTypenKeys.zaakinformatieobjecttypen
+                )
+            except ParserException as exc:
+                session.counter.increment_errored(
+                    ObjectTypenKeys.zaakinformatieobjecttypen
+                )
+                session.log_error(
+                    f"{log_scope} ziotype '{ziotype.get('volgnummer')}' can't be parsed due to: {format_exception(exc)}",
+                    ObjectTypenKeys.zaakinformatieobjecttypen,
+                )
+                continue
 
         zaaktype_data["_children"] = {
             "roltypen": roltypen_data,
-            "statustypen": statustype_data,
+            "statustypen": statustypen_data,
             "resultaattypen": resultaattypen_data,
             "zaakinformatieobjecttypen": ziotypen_data,
         }
@@ -541,24 +590,3 @@ def parse_xml(
                 iotypen_dict[omschrijving] = iotype_data
 
     return zaaktypen_data, list(iotypen_dict.values())
-
-
-def extract_counts(zaaktypen_data, iotypen_data):
-    count = {
-        ObjectTypenKeys.roltypen: 0,
-        ObjectTypenKeys.zaaktypen: len(zaaktypen_data),
-        ObjectTypenKeys.statustypen: 0,
-        ObjectTypenKeys.resultaattypen: 0,
-        ObjectTypenKeys.informatieobjecttypen: len(iotypen_data),
-        ObjectTypenKeys.zaakinformatieobjecttypen: 0,
-    }
-    for zaaktype in zaaktypen_data:
-        children = zaaktype["_children"]
-        count[ObjectTypenKeys.roltypen] += len(children["roltypen"])
-        count[ObjectTypenKeys.statustypen] += len(children["statustypen"])
-        count[ObjectTypenKeys.resultaattypen] += len(children["resultaattypen"])
-        count[ObjectTypenKeys.zaakinformatieobjecttypen] += len(
-            children["zaakinformatieobjecttypen"]
-        )
-
-    return count
