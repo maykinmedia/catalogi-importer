@@ -134,13 +134,13 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                     {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
                     url=remote["url"],
                 )
+                session.log_info(
+                    f"{log_scope} closed old resource on {iotype_data['beginGeldigheid']}: {remote['url']}"
+                )
                 # create new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
-                session.log_info(
-                    f"{log_scope} closed published resource and started new concept"
-                )
+                session.log_info(f"{log_scope} created new version")
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
-
         except (ClientError, HTTPError) as exc:
             session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
             session.log_error(
@@ -194,7 +194,7 @@ def update_zaaktype_children(
             if remote:
                 obj = client.update(resource, child_data, url=remote["url"])
                 session.counter.increment_updated(type_key)
-                session.log_info(f"{_log_scope} updated existing concept")
+                session.log_info(f"{_log_scope} updated existing")
             else:
                 obj = client.create(resource, child_data)
                 session.counter.increment_created(type_key)
