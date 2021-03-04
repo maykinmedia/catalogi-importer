@@ -1,12 +1,15 @@
+from datetime import date
+
 from django.core.files.base import ContentFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 import requests_mock
+from freezegun import freeze_time
 from zgw_consumers.constants import APITypes
 
 from importer.core.choices import JobState
 from importer.core.tasks import import_job_task
-from importer.core.tests.base import TestCaseMixin
+from importer.core.tests.base import MockMatcherCheck, TestCaseMixin
 from importer.core.tests.factories import (
     CatalogConfigFactory,
     QueuedJobFactory,
@@ -161,6 +164,12 @@ error_response = {
     ],
 }
 
+TEST_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    }
+}
+
 
 class ImportTest(TestCaseMixin, TestCase):
     maxDiff = None
@@ -201,12 +210,14 @@ class ImportTest(TestCaseMixin, TestCase):
         )
         return job
 
+    @override_settings(CACHES=TEST_CACHES)
     @requests_mock.Mocker()
     def test_positive_create_flow(self, m):
         """
         Test a mocked import on an empty catalog
         """
         job = self.setup_import_job(m)
+        match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
             "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
@@ -272,6 +283,9 @@ class ImportTest(TestCaseMixin, TestCase):
         # see what happened
         job.refresh_from_db()
 
+        if not match_check.all_called():
+            self.fail(match_check.get_diff())
+
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
         self.assertEqual(len(messages), 6)  # we got 6 types of resources
@@ -309,12 +323,255 @@ class ImportTest(TestCaseMixin, TestCase):
         )
         self.assertEqual(job.state, JobState.completed)
 
+    @override_settings(CACHES=TEST_CACHES)
     @requests_mock.Mocker()
     def test_positive_update_flow(self, m):
         """
         Test a mocked import on an catalog with existing published items
         """
         job = self.setup_import_job(m)
+        match_check = MockMatcherCheck(m, ignore_predefined=True)
+
+        m.get(
+            "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
+            json=informatieobjecttype_list_response,
+        )
+        # we don't close the existing but only create new
+        m.post(
+            "http://test/api/informatieobjecttypen",
+            json=informatieobjecttype_response_concept,
+            status_code=201,
+        )
+
+        m.get(
+            "http://test/api/zaaktypen?identificatie=B1796&catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
+            json=zaaktype_list_response,
+        )
+        # we don't close the existing but only create new
+        m.post(
+            "http://test/api/zaaktypen",
+            json=zaaktype_response_concept,
+            status_code=201,
+        )
+
+        m.get(
+            "http://test/api/roltypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F2&status=alles",
+            json=roltype_list_response,
+        )
+        m.put(
+            "http://test/api/roltypen/1",
+            json=roltype_response,
+            status_code=200,
+        )
+        m.get(
+            "http://test/api/statustypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F2&status=alles",
+            json=statustype_list_response,
+        )
+        m.put(
+            "http://test/api/statustypen/1",
+            json=statustype_response,
+            status_code=200,
+        )
+        m.get(
+            "http://test/api/resultaattypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F2&status=alles",
+            json=resultaattype_list_response,
+        )
+        m.put(
+            "http://test/api/resultaattypen/1",
+            json=statustype_response,
+            status_code=200,
+        )
+        m.get(
+            "http://test/api/zaaktype-informatieobjecttypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F2&status=alles",
+            json=zaaktypeinformatieobjecttype_list_response,
+        )
+        m.put(
+            "http://test/api/zaaktypeinformatieobjecttypen/1",
+            json=zaaktypeinformatieobjecttype_response,
+            status_code=200,
+        )
+
+        # for debugging run the import function
+        # run_import(job)
+
+        # # test the Celery task function
+        import_job_task(job.id)
+
+        # see what happened
+        job.refresh_from_db()
+
+        if not match_check.all_called():
+            self.fail(match_check.get_diff())
+
+        logs = chop_precheck_from_logs(job.joblog_set.all())
+        messages = [log.message for log in logs]
+        self.assertEqual(len(messages), 8)  # we got 6 types of resources and closed 2
+
+        expected = [
+            "informatieobjecttype 'Onderzoeksstuk' existing published resource stays active",
+            "informatieobjecttype 'Onderzoeksstuk' started new concept",
+            "zaaktype B1796 existing published resource stays active",
+            "zaaktype B1796 created new version",
+            "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
+            "zaaktype B1796: statustype volgnummer='1' updated existing",
+            "zaaktype B1796: resultaattype omschrijving='Geweigerd' updated existing",
+            "zaaktype B1796: zaakinformatieobjecttype volgnummer='1' updated existing",
+        ]
+        self.assertEqual(messages, expected)
+
+        # one of everything
+        updated_one = {
+            "counted": 1,
+            "created": 0,
+            "errored": 0,
+            "issues": {},
+            "updated": 1,
+        }
+        self.assertEqual(
+            job.statistics,
+            {
+                "data": {
+                    "rt": updated_one,
+                    "st": updated_one,
+                    "zt": updated_one,
+                    "iot": updated_one,
+                    "rst": updated_one,
+                    "ziot": updated_one,
+                }
+            },
+        )
+        self.assertEqual(job.state, JobState.completed)
+
+    @override_settings(CACHES=TEST_CACHES)
+    @requests_mock.Mocker()
+    def test_positive_update_flow_concepts(self, m):
+        """
+        Test a mocked import on an catalog with existing concept items
+        """
+        job = self.setup_import_job(m)
+        match_check = MockMatcherCheck(m, ignore_predefined=True)
+
+        m.get(
+            "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
+            json=informatieobjecttype_list_response_concept,
+        )
+        # we don't create new but update concept
+        m.put(
+            "http://test/api/informatieobjecttypen/2",
+            json=informatieobjecttype_response,
+            status_code=200,
+        )
+
+        m.get(
+            "http://test/api/zaaktypen?identificatie=B1796&catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
+            json=zaaktype_list_response_concept,
+        )
+        # we don't create new but update concept
+        m.put(
+            "http://test/api/zaaktypen/2",
+            json=zaaktype_response,
+            status_code=200,
+        )
+
+        m.get(
+            "http://test/api/roltypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
+            json=roltype_list_response,
+        )
+        m.put(
+            "http://test/api/roltypen/1",
+            json=roltype_response,
+            status_code=200,
+        )
+        m.get(
+            "http://test/api/statustypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
+            json=statustype_list_response,
+        )
+        m.put(
+            "http://test/api/statustypen/1",
+            json=statustype_response,
+            status_code=200,
+        )
+        m.get(
+            "http://test/api/resultaattypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
+            json=resultaattype_list_response,
+        )
+        m.put(
+            "http://test/api/resultaattypen/1",
+            json=statustype_response,
+            status_code=200,
+        )
+        m.get(
+            "http://test/api/zaaktype-informatieobjecttypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
+            json=zaaktypeinformatieobjecttype_list_response,
+        )
+        m.put(
+            "http://test/api/zaaktypeinformatieobjecttypen/1",
+            json=zaaktypeinformatieobjecttype_response,
+            status_code=200,
+        )
+
+        # for debugging run the import function
+        # run_import(job)
+
+        # # test the Celery task function
+        import_job_task(job.id)
+
+        # see what happened
+        job.refresh_from_db()
+
+        if not match_check.all_called():
+            self.fail(match_check.get_diff())
+
+        logs = chop_precheck_from_logs(job.joblog_set.all())
+        messages = [log.message for log in logs]
+        self.assertEqual(len(messages), 6)  # we got 6 types of resources
+
+        expected = [
+            "informatieobjecttype 'Onderzoeksstuk' updated existing concept",
+            "zaaktype B1796 updated existing concept",
+            "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
+            "zaaktype B1796: statustype volgnummer='1' updated existing",
+            "zaaktype B1796: resultaattype omschrijving='Geweigerd' updated existing",
+            "zaaktype B1796: zaakinformatieobjecttype volgnummer='1' updated existing",
+        ]
+        self.assertEqual(messages, expected)
+
+        # one of everything
+        updated_one = {
+            "counted": 1,
+            "created": 0,
+            "errored": 0,
+            "issues": {},
+            "updated": 1,
+        }
+        self.assertEqual(
+            job.statistics,
+            {
+                "data": {
+                    "rt": updated_one,
+                    "st": updated_one,
+                    "zt": updated_one,
+                    "iot": updated_one,
+                    "rst": updated_one,
+                    "ziot": updated_one,
+                }
+            },
+        )
+        self.assertEqual(job.state, JobState.completed)
+
+    @override_settings(CACHES=TEST_CACHES)
+    @freeze_time("2021-03-01")
+    @requests_mock.Mocker()
+    def test_positive_update_options_flow(self, m):
+        """
+        Test a mocked import on an catalog with existing published items
+        """
+        job = self.setup_import_job(m)
+        job.close_published = True
+        job.start_date = date(2021, 4, 1)
+        job.save()
+
+        match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
             "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
@@ -394,14 +651,16 @@ class ImportTest(TestCaseMixin, TestCase):
         # see what happened
         job.refresh_from_db()
 
+        if not match_check.all_called():
+            self.fail(match_check.get_diff())
+
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
         self.assertEqual(len(messages), 8)  # we got 6 types of resources and closed 2
-
         expected = [
-            "informatieobjecttype 'Onderzoeksstuk' existing published resource stays active",
+            "informatieobjecttype 'Onderzoeksstuk' closed existing published resource",
             "informatieobjecttype 'Onderzoeksstuk' started new concept",
-            "zaaktype B1796 existing published resource stays active",
+            "zaaktype B1796 closed old resource on 2020-07-06: http://test/api/zaaktypen/1",
             "zaaktype B1796 created new version",
             "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
             "zaaktype B1796: statustype volgnummer='1' updated existing",
@@ -433,118 +692,7 @@ class ImportTest(TestCaseMixin, TestCase):
         )
         self.assertEqual(job.state, JobState.completed)
 
-    @requests_mock.Mocker()
-    def test_positive_update_flow_concepts(self, m):
-        """
-        Test a mocked import on an catalog with existing concept items
-        """
-        job = self.setup_import_job(m)
-
-        m.get(
-            "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
-            json=informatieobjecttype_list_response_concept,
-        )
-        # close and create
-        m.put(
-            "http://test/api/informatieobjecttypen/2",
-            json=informatieobjecttype_response,
-            status_code=200,
-        )
-
-        m.get(
-            "http://test/api/zaaktypen?identificatie=B1796&catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
-            json=zaaktype_list_response_concept,
-        )
-        # close and create
-        m.put(
-            "http://test/api/zaaktypen/2",
-            json=zaaktype_response,
-            status_code=200,
-        )
-
-        m.get(
-            "http://test/api/roltypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
-            json=roltype_list_response,
-        )
-        m.put(
-            "http://test/api/roltypen/1",
-            json=roltype_response,
-            status_code=200,
-        )
-        m.get(
-            "http://test/api/statustypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
-            json=statustype_list_response,
-        )
-        m.put(
-            "http://test/api/statustypen/1",
-            json=statustype_response,
-            status_code=200,
-        )
-        m.get(
-            "http://test/api/resultaattypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
-            json=resultaattype_list_response,
-        )
-        m.put(
-            "http://test/api/resultaattypen/1",
-            json=statustype_response,
-            status_code=200,
-        )
-        m.get(
-            "http://test/api/zaaktype-informatieobjecttypen?zaaktype=http%3A%2F%2Ftest%2Fapi%2Fzaaktypen%2F1&status=alles",
-            json=zaaktypeinformatieobjecttype_list_response,
-        )
-        m.put(
-            "http://test/api/zaaktypeinformatieobjecttypen/1",
-            json=zaaktypeinformatieobjecttype_response,
-            status_code=200,
-        )
-
-        # for debugging run the import function
-        # run_import(job)
-
-        # # test the Celery task function
-        import_job_task(job.id)
-
-        # see what happened
-        job.refresh_from_db()
-
-        logs = chop_precheck_from_logs(job.joblog_set.all())
-        messages = [log.message for log in logs]
-        self.assertEqual(len(messages), 6)  # we got 6 types of resources
-
-        expected = [
-            "informatieobjecttype 'Onderzoeksstuk' updated existing concept",
-            "zaaktype B1796 updated existing concept",
-            "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
-            "zaaktype B1796: statustype volgnummer='1' updated existing",
-            "zaaktype B1796: resultaattype omschrijving='Geweigerd' updated existing",
-            "zaaktype B1796: zaakinformatieobjecttype volgnummer='1' updated existing",
-        ]
-        self.assertEqual(messages, expected)
-
-        # one of everything
-        updated_one = {
-            "counted": 1,
-            "created": 0,
-            "errored": 0,
-            "issues": {},
-            "updated": 1,
-        }
-        self.assertEqual(
-            job.statistics,
-            {
-                "data": {
-                    "rt": updated_one,
-                    "st": updated_one,
-                    "zt": updated_one,
-                    "iot": updated_one,
-                    "rst": updated_one,
-                    "ziot": updated_one,
-                }
-            },
-        )
-        self.assertEqual(job.state, JobState.completed)
-
+    @override_settings(CACHES=TEST_CACHES)
     @requests_mock.Mocker()
     def test_negative_create_flow(self, m):
         """
@@ -552,6 +700,7 @@ class ImportTest(TestCaseMixin, TestCase):
         """
 
         job = self.setup_import_job(m)
+        match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
             "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
@@ -567,6 +716,9 @@ class ImportTest(TestCaseMixin, TestCase):
 
         # see what happened
         job.refresh_from_db()
+
+        if not match_check.all_called():
+            self.fail(match_check.get_diff())
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]

@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urljoin, urlunparse
 
 from django.urls import reverse
 
@@ -139,3 +140,65 @@ class AdminWebTest(TestCaseMixin, WebTest):
         if allow_fields is not None:
             expect_fields |= set(allow_fields)
         self.assertEqual(set(), set(form.fields.keys()) - expect_fields)
+
+
+class MockMatcherCheck:
+    """
+    utility for RequestMock to verify all defined matchers are called (at least once)
+      this is useful when we mock responses for a complex flow to external service and
+      we want to make sure the system under test called every matcher
+
+    initialize with ignore_predefined=True to ignore matchers defined up to that point
+        eg: after complex/reusable setup that define matchers not interesting for the testcase
+    """
+
+    def __init__(self, mock, ignore_predefined=False):
+        self.mock = mock
+        if ignore_predefined:
+            self.ignore_matchers = self.defined_matchers
+        else:
+            self.ignore_matchers = set()
+
+    @property
+    def defined_matchers(self):
+        return set(self.mock._adapter._matchers)
+
+    @property
+    def used_matchers(self):
+        return {r._matcher() for r in self.mock.request_history}
+
+    def all_called(self):
+        return (
+            self.defined_matchers - self.ignore_matchers
+            == self.used_matchers - self.ignore_matchers
+        )
+
+    def get_diff(self):
+        missing = self.defined_matchers - self.used_matchers - self.ignore_matchers
+        extra = self.used_matchers - self.defined_matchers - self.ignore_matchers
+
+        ret = []
+        if missing:
+            ret.append("not called:")
+            ret.extend(sorted(f"  {self.match_str(m)}" for m in missing))
+        if extra:
+            ret.append("extra:")
+            ret.extend(sorted(f"  {self.match_str(m)}" for m in extra))
+        if ret:
+            return "\n".join(ret)
+        else:
+            return "all called"
+
+    def match_str(self, m):
+        """
+        matchers dont have a nice str so make one
+        """
+        parts = (
+            m._scheme,
+            m._netloc,
+            m._path,
+            "",
+            m._query,
+            "",
+        )
+        return f"{m._method.ljust(5)} {urlunparse(parts)}"
