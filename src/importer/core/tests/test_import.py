@@ -5,7 +5,6 @@ import requests_mock
 from zgw_consumers.constants import APITypes
 
 from importer.core.choices import JobState
-from importer.core.importer import run_import
 from importer.core.tasks import import_job_task
 from importer.core.tests.base import TestCaseMixin
 from importer.core.tests.factories import (
@@ -164,6 +163,8 @@ error_response = {
 
 
 class ImportTest(TestCaseMixin, TestCase):
+    maxDiff = None
+
     def setup_import_job(self, m):
         self.setup_selectielijst_service()
         self.setup_selectielijst_mocks(m)
@@ -286,16 +287,23 @@ class ImportTest(TestCaseMixin, TestCase):
         self.assertEqual(messages, expected)
 
         # one of everything
+        created_one = {
+            "counted": 1,
+            "created": 1,
+            "errored": 0,
+            "issues": {},
+            "updated": 0,
+        }
         self.assertEqual(
             job.statistics,
             {
                 "data": {
-                    "rt": [1, 1, None],
-                    "st": [1, 1, None],
-                    "zt": [1, 1, None],
-                    "iot": [1, 1, None],
-                    "rst": [1, 1, None],
-                    "ziot": [1, 1, None],
+                    "rt": created_one,
+                    "st": created_one,
+                    "zt": created_one,
+                    "iot": created_one,
+                    "rst": created_one,
+                    "ziot": created_one,
                 }
             },
         )
@@ -403,16 +411,23 @@ class ImportTest(TestCaseMixin, TestCase):
         self.assertEqual(messages, expected)
 
         # one of everything
+        updated_one = {
+            "counted": 1,
+            "created": 0,
+            "errored": 0,
+            "issues": {},
+            "updated": 1,
+        }
         self.assertEqual(
             job.statistics,
             {
                 "data": {
-                    "rt": [1, 1, None],
-                    "st": [1, 1, None],
-                    "zt": [1, 1, None],
-                    "iot": [1, 1, None],
-                    "rst": [1, 1, None],
-                    "ziot": [1, 1, None],
+                    "rt": updated_one,
+                    "st": updated_one,
+                    "zt": updated_one,
+                    "iot": updated_one,
+                    "rst": updated_one,
+                    "ziot": updated_one,
                 }
             },
         )
@@ -508,16 +523,23 @@ class ImportTest(TestCaseMixin, TestCase):
         self.assertEqual(messages, expected)
 
         # one of everything
+        updated_one = {
+            "counted": 1,
+            "created": 0,
+            "errored": 0,
+            "issues": {},
+            "updated": 1,
+        }
         self.assertEqual(
             job.statistics,
             {
                 "data": {
-                    "rt": [1, 1, None],
-                    "st": [1, 1, None],
-                    "zt": [1, 1, None],
-                    "iot": [1, 1, None],
-                    "rst": [1, 1, None],
-                    "ziot": [1, 1, None],
+                    "rt": updated_one,
+                    "st": updated_one,
+                    "zt": updated_one,
+                    "iot": updated_one,
+                    "rst": updated_one,
+                    "ziot": updated_one,
                 }
             },
         )
@@ -554,17 +576,29 @@ class ImportTest(TestCaseMixin, TestCase):
         ]
         self.assertEqual(messages, expected)
 
-        # nothing but an error
+        counted_one = {
+            "counted": 1,
+            "created": 0,
+            "errored": 0,
+            "issues": {},
+            "updated": 0,
+        }
         self.assertEqual(
             job.statistics,
             {
                 "data": {
-                    "rt": [0, 1, None],
-                    "st": [0, 1, None],
-                    "zt": [0, 1, None],
-                    "iot": [0, 1, {"error": 1}],
-                    "rst": [0, 1, None],
-                    "ziot": [0, 1, None],
+                    "rt": counted_one,
+                    "st": counted_one,
+                    "zt": counted_one,
+                    "iot": {
+                        "counted": 1,
+                        "created": 0,
+                        "errored": 0,
+                        "issues": {"error": 1},
+                        "updated": 0,
+                    },
+                    "rst": counted_one,
+                    "ziot": counted_one,
                 }
             },
         )

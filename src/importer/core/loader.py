@@ -56,10 +56,12 @@ def update_zaaktype(session, zaaktype_data: dict):
         # create new
         zaaktype = client.create("zaaktype", data=zaaktype_data)
         session.log_info(f"{log_scope} created")
+        session.counter.increment_created(ObjectTypenKeys.zaaktypen)
     elif remote["concept"]:
         # update old resource which is still in concept
         zaaktype = client.update("zaaktype", zaaktype_data, url=remote["url"])
         session.log_info(f"{log_scope} updated existing concept")
+        session.counter.increment_updated(ObjectTypenKeys.zaaktypen)
     else:
         # close old resource with start-date of the new resource
         client.partial_update(
@@ -73,6 +75,7 @@ def update_zaaktype(session, zaaktype_data: dict):
         # create new resource
         zaaktype = client.create("zaaktype", data=zaaktype_data)
         session.log_info(f"{log_scope} created new version")
+        session.counter.increment_updated(ObjectTypenKeys.zaaktypen)
 
     return zaaktype
 
