@@ -236,8 +236,12 @@ class JobLog(models.Model):
 
     # TODO we probably want to register more fields, like the sub catalog, object uri etc
 
-    def message_trim_line(self, length=32):
-        return self.message.splitlines()[0][:length]
+    def message_trim_line(self, length=64):
+        line = self.message.splitlines()[0]
+        out = line[:length]
+        if out != line:
+            return f"{out}[..]"
+        return out
 
     message_trim_line.short_description = _("Message")
     message_trim_line.admin_order_field = "message"
@@ -247,3 +251,6 @@ class JobLog(models.Model):
 
     get_level_icon.short_description = _("Level")
     get_level_icon.admin_order_field = "level"
+
+    def __str__(self):
+        return f"{self.job_id} {self.level} {self.message_trim_line(64)}"

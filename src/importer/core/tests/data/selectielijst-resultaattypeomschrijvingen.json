@@ -1,0 +1,99 @@
+[
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/ce8cf476-0b59-496f-8eee-957a7c6e2506",
+        "omschrijving": "Afgebroken",
+        "definitie": "Afgebroken",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/7cb315fb-4f7b-4a43-aca1-e4522e4c73b3",
+        "omschrijving": "Afgehandeld",
+        "definitie": "Afgehandeld",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/e6a0c939-3404-45b0-88e3-76c94fb80ea7",
+        "omschrijving": "Afgewezen",
+        "definitie": "Afgewezen",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/3a0a9c3c-0847-4e7e-b7d9-765b9434094c",
+        "omschrijving": "Gegrond",
+        "definitie": "Gegrond",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/1f750958-431c-4916-bc01-af5d3a753b41",
+        "omschrijving": "Geweigerd",
+        "definitie": "Geweigerd",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/a6a0bd73-262a-401a-b629-9c4a908c69b5",
+        "omschrijving": "Ingetrokken",
+        "definitie": "Ingetrokken",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/3c23a936-ab4b-4715-a05b-b122d62ff050",
+        "omschrijving": "Niet nodig",
+        "definitie": "Niet nodig",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/1118c52c-5445-4d32-91cd-e9efbac24ccd",
+        "omschrijving": "Niet ontvankelijk",
+        "definitie": "Niet ontvankelijk",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/9c180d8b-2dd7-4a6f-89fa-7ba4d2f0cd8d",
+        "omschrijving": "Niet vastgesteld",
+        "definitie": "Niet vastgesteld",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/50060769-96b3-4993-ae6a-35ae5fd14604",
+        "omschrijving": "Onbekend",
+        "definitie": "Onbekend",
+        "opmerking": "Een onbekende generieke resultaatomschrijving."
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/b20acab7-ba04-4c44-b408-3d2ea18d1e57",
+        "omschrijving": "Ongegrond",
+        "definitie": "Ongegrond",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/ea945b93-e052-4c54-b179-51a18cb02667",
+        "omschrijving": "Ontvankelijk",
+        "definitie": "Ontvankelijk",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/fb65d251-1518-4185-865f-b8bdcfad07b1",
+        "omschrijving": "Toegekend",
+        "definitie": "Toegekend",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/43ac0469-e0c0-4985-a6ce-8ec285d2df47",
+        "omschrijving": "Vastgesteld",
+        "definitie": "Vastgesteld",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/f7d2dc14-1b71-4179-aed3-4e7abcfbeb0d",
+        "omschrijving": "Verleend",
+        "definitie": "Verleend",
+        "opmerking": ""
+    },
+    {
+        "url": "https://selectielijst.openzaak.nl/api/v1/resultaattypeomschrijvingen/f33dbd16-68ae-4820-acb5-5f437bca5edb",
+        "omschrijving": "Verwerkt",
+        "definitie": "Verwerkt",
+        "opmerking": ""
+    }
+]
+

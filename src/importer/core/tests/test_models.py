@@ -114,7 +114,7 @@ class JobTests(TestCase):
 class JobLogTests(TestCase):
     def test_message(self):
         log = JobLogFactory(message="0123456789abcdef")
-        self.assertEqual(log.message_trim_line(length=10), "0123456789")
+        self.assertEqual(log.message_trim_line(length=10), "0123456789[..]")
 
         # clip at first linebreak
         log = JobLogFactory(message="012345\n6789abcdef")

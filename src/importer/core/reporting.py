@@ -36,7 +36,7 @@ class ImportSession:
             return self._clients[url]
         client = Service.get_client(url)
         if not client:
-            raise ClientError("a ZGW service must be configured first")
+            raise ClientError(f"a ZGW service must be configured first for url '{url}'")
         self._clients[url] = client
         return client
 
