@@ -71,7 +71,7 @@ def update_zaaktype(session, zaaktype_data: dict):
                 url=remote["url"],
             )
             session.log_info(
-                f"{log_scope} closed old resource on {zaaktype_data['beginGeldigheid']}: {remote['url']}"
+                f"{log_scope} closed existing published on {zaaktype_data['beginGeldigheid']}: {remote['url']}"
             )
         else:
             session.log_info(f"{log_scope} existing published resource stays active")
@@ -95,16 +95,6 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     """
     client = session.client_from_url(session.catalogus_url)
 
-    # pre-process and backfill
-    for iotype_data in iotypen_data:
-        iotype_data["catalogus"] = session.catalogus_url
-        if not iotype_data["beginGeldigheid"]:
-            start_date = session.job.start_date.isoformat()
-            iotype_data["beginGeldigheid"] = start_date
-            session.log_info(
-                f"iotype '{iotype_data['omschrijving']}' doesn't have beginGeldigheid. It's set as today ({start_date})."
-            )
-
     # fetch existing and create lookup
     remote_list = get_paginated_results(
         client,
@@ -119,6 +109,8 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     for i, iotype_data in enumerate(iotypen_data, start=1):
         if i % FLUSH_OBJECTS == 0:
             session.flush_counts()
+
+        iotype_data["catalogus"] = session.catalogus_url
 
         log_scope = f"informatieobjecttype '{iotype_data['omschrijving']}'"
         try:
@@ -137,11 +129,13 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
             else:
                 # close old resource with start-date of the new resource
                 if session.job.close_published:
-                    session.log_info(f"{log_scope} closed existing published resource")
                     client.partial_update(
                         "informatieobjecttype",
                         {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
                         url=remote["url"],
+                    )
+                    session.log_info(
+                        f"{log_scope} closed existing published on {iotype_data['beginGeldigheid']}: {remote['url']}"
                     )
                 else:
                     session.log_info(

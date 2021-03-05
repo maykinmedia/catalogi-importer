@@ -8,6 +8,7 @@ from freezegun import freeze_time
 from zgw_consumers.constants import APITypes
 
 from importer.core.choices import JobState
+from importer.core.importer import run_import
 from importer.core.tasks import import_job_task
 from importer.core.tests.base import MockMatcherCheck, TestCaseMixin
 from importer.core.tests.factories import (
@@ -578,7 +579,7 @@ class ImportTest(TestCaseMixin, TestCase):
             json=informatieobjecttype_list_response,
         )
         # close and create
-        m.patch(
+        io_close = m.patch(
             "http://test/api/informatieobjecttypen/1",
             json=informatieobjecttype_response,
             status_code=200,
@@ -594,7 +595,7 @@ class ImportTest(TestCaseMixin, TestCase):
             json=zaaktype_list_response,
         )
         # close and create
-        m.patch(
+        zt_close = m.patch(
             "http://test/api/zaaktypen/1",
             json=zaaktype_response,
             status_code=200,
@@ -654,13 +655,18 @@ class ImportTest(TestCaseMixin, TestCase):
         if not match_check.all_called():
             self.fail(match_check.get_diff())
 
+        io_close_data = io_close.request_history[0].json()
+        self.assertEqual("2021-04-01", io_close_data["eindeGeldigheid"])
+        zt_close_data = zt_close.request_history[0].json()
+        self.assertEqual("2021-04-01", zt_close_data["eindeGeldigheid"])
+
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
         self.assertEqual(len(messages), 8)  # we got 6 types of resources and closed 2
         expected = [
-            "informatieobjecttype 'Onderzoeksstuk' closed existing published resource",
+            "informatieobjecttype 'Onderzoeksstuk' closed existing published on 2021-04-01: http://test/api/informatieobjecttypen/1",
             "informatieobjecttype 'Onderzoeksstuk' started new concept",
-            "zaaktype B1796 closed old resource on 2020-07-06: http://test/api/zaaktypen/1",
+            "zaaktype B1796 closed existing published on 2021-04-01: http://test/api/zaaktypen/1",
             "zaaktype B1796 created new version",
             "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
             "zaaktype B1796: statustype volgnummer='1' updated existing",

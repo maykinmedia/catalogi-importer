@@ -302,8 +302,8 @@ def construct_zaaktype_data(
         "referentieproces": {"naam": find(fields, "ztc-procestype")},
         # Set during `load_data`
         # "catalogus": "",
-        "beginGeldigheid": get_date(find(fields, "actueel-van")),
-        "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
+        "beginGeldigheid": session.job.start_date.isoformat(),
+        "eindeGeldigheid": None,
         "versiedatum": get_date(find(fields, "actueel-van")),
         "servicenorm": servicenorm,
         # TODO no mapping for required field
@@ -432,15 +432,9 @@ def construct_iotype_data(session, log_scope, document: etree.ElementBase) -> di
             DEFAULT_VERTROUWELIJKHEID,
         ),
         # begin data would be set during merging different iotypen later
-        "beginGeldigheid": get_date(find(fields, "actueel-van", False)),
-        "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
+        "beginGeldigheid": session.job.start_date.isoformat(),
+        "eindeGeldigheid": None,
     }
-    if not iotype_data["beginGeldigheid"]:
-        # note we cant set this here because some logic depends on it
-        session.log_info(
-            f"{log_scope} doesn't have beginGeldigheid. It will be set to '{session.job.start_date.isoformat()}'.",
-            ObjectTypenKeys.informatieobjecttypen,
-        )
     return iotype_data
 
 
