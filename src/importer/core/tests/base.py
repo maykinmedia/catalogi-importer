@@ -180,25 +180,28 @@ class MockMatcherCheck:
         ret = []
         if missing:
             ret.append("not called:")
-            ret.extend(sorted(f"  {self.match_str(m)}" for m in missing))
+            ret.extend(self.matchers_lines(missing))
         if extra:
             ret.append("extra:")
-            ret.extend(sorted(f"  {self.match_str(m)}" for m in extra))
+            ret.extend(self.matchers_lines(extra))
         if ret:
             return "\n".join(ret)
         else:
             return "all called"
 
-    def match_str(self, m):
-        """
-        matchers dont have a nice str so make one
-        """
-        parts = (
-            m._scheme,
-            m._netloc,
-            m._path,
-            "",
-            m._query,
-            "",
-        )
-        return f"{m._method.ljust(5)} {urlunparse(parts)}"
+    def matchers_lines(self, matchers):
+        def matcher_url(m):
+            parts = (
+                m._scheme,
+                m._netloc,
+                m._path,
+                "",
+                m._query,
+                "",
+            )
+            return urlunparse(parts)
+
+        # sort by URL and stringify
+        sortable = ((matcher_url(m), m._method) for m in matchers)
+        for url, method in sorted(sortable):
+            yield f"{method.ljust(5)} {url}"
