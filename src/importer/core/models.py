@@ -245,8 +245,6 @@ class JobLog(models.Model):
 
     message = models.TextField(_("Message"), default="")
 
-    # TODO we probably want to register more fields, like the sub catalog, object uri etc
-
     def message_trim_line(self, length=64):
         line = self.message.splitlines()[0]
         out = line[:length]

@@ -154,7 +154,6 @@ class JobAdmin(admin.ModelAdmin):
         return job.joblog_set.order_by("pk")
 
     def change_view(self, request, object_id, form_url="", context=None):
-        # TODO do we really have to retrieve this ourselves?
         job = Job.objects.get(id=object_id)
 
         context = context or {}
@@ -218,8 +217,7 @@ class JobAdmin(admin.ModelAdmin):
         pass
 
     def has_delete_permission(self, request, obj=None):
-        # TODO allow deletion for cleanup of failed prechecks?
-        return False  # request.user.is_superuser
+        return False
 
     def has_change_permission(self, request, obj=None):
         # precheck is the only state that needs user interaction to continue
