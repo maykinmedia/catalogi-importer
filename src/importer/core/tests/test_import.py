@@ -694,7 +694,7 @@ class ImportTest(TestCaseMixin, TestCase):
 
     @override_settings(CACHES=TEST_CACHES)
     @requests_mock.Mocker()
-    def test_negative_create_flow(self, m):
+    def test_negative_init_flow(self, m):
         """
         Test an mocked import on an empty catalog
         """
@@ -747,6 +747,89 @@ class ImportTest(TestCaseMixin, TestCase):
                         "created": 0,
                         "errored": 0,
                         "issues": {"error": 1},
+                        "updated": 0,
+                    },
+                    "rst": counted_one,
+                    "ziot": counted_one,
+                }
+            },
+        )
+        self.assertEqual(job.state, JobState.completed)
+
+    @override_settings(CACHES=TEST_CACHES)
+    @requests_mock.Mocker()
+    def test_negative_create_flow(self, m):
+        """
+        Test a mocked import on an empty catalog
+        """
+        job = self.setup_import_job(m)
+        match_check = MockMatcherCheck(m, ignore_predefined=True)
+
+        m.get(
+            "http://test/api/informatieobjecttypen?catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
+            json=empty_list_response,
+        )
+        m.post(
+            "http://test/api/informatieobjecttypen",
+            json=informatieobjecttype_response,
+            status_code=201,
+        )
+        m.get(
+            "http://test/api/zaaktypen?identificatie=B1796&catalogus=http%3A%2F%2Ftest%2Fapi%2Fcatalogussen%2F7c0e6595-adbe-45b4-b092-31ba75c7dd74&status=alles",
+            json=empty_list_response,
+        )
+        m.post(
+            "http://test/api/zaaktypen",
+            json=error_response,
+            status_code=400,
+        )
+        # for debugging run the import function
+        # run_import(job)
+
+        # # test the Celery task function
+        import_job_task(job.id)
+
+        # see what happened
+        job.refresh_from_db()
+
+        if not match_check.all_called():
+            self.fail(match_check.get_diff())
+
+        logs = chop_precheck_from_logs(job.joblog_set.all())
+        messages = [log.message for log in logs]
+        self.assertEqual(len(messages), 2)
+
+        expected = [
+            "informatieobjecttype 'Onderzoeksstuk' created new",
+            "zaaktype B1796: can't be created: Error title: Foo-bar-reason",
+        ]
+        self.assertEqual(messages, expected)
+
+        counted_one = {
+            "counted": 1,
+            "created": 0,
+            "errored": 0,
+            "issues": {},
+            "updated": 0,
+        }
+        self.assertEqual(
+            job.statistics,
+            {
+                "data": {
+                    "rt": counted_one,
+                    "st": counted_one,
+                    "zt": {
+                        "counted": 1,
+                        "created": 0,
+                        "errored": 1,
+                        "issues": {"error": 1},
+                        "updated": 0,
+                    },
+                    "iot": {
+                        "counted": 1,
+                        "created": 1,
+                        "errored": 0,
+                        "issues": {},
                         "updated": 0,
                     },
                     "rst": counted_one,
