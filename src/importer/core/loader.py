@@ -55,7 +55,7 @@ def update_zaaktype(session, zaaktype_data: dict):
     if not remote:
         # create new
         zaaktype = client.create("zaaktype", data=zaaktype_data)
-        session.log_info(f"{log_scope} created")
+        session.log_info(f"{log_scope} created new concept")
         session.counter.increment_created(ObjectTypenKeys.zaaktypen)
     elif remote["concept"]:
         # update old resource which is still in concept
@@ -71,10 +71,10 @@ def update_zaaktype(session, zaaktype_data: dict):
                 url=remote["url"],
             )
             session.log_info(
-                f"{log_scope} closed existing published on {zaaktype_data['beginGeldigheid']}: {remote['url']}"
+                f"{log_scope} closed existing published on '{zaaktype_data['beginGeldigheid']}'"
             )
         else:
-            session.log_info(f"{log_scope} existing published resource stays active")
+            session.log_info(f"{log_scope} existing published stays active")
 
         # create new resource
         zaaktype = client.create("zaaktype", data=zaaktype_data)
@@ -118,7 +118,7 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
             if not remote:
                 # new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
-                session.log_info(f"{log_scope} created new")
+                session.log_info(f"{log_scope} created new concept")
                 session.counter.increment_created(ObjectTypenKeys.informatieobjecttypen)
             elif remote["concept"]:
                 iotype = client.update(
@@ -138,9 +138,7 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                         f"{log_scope} closed existing published on {iotype_data['beginGeldigheid']}: {remote['url']}"
                     )
                 else:
-                    session.log_info(
-                        f"{log_scope} existing published resource stays active"
-                    )
+                    session.log_info(f"{log_scope} existing published stays active")
 
                 # create new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
