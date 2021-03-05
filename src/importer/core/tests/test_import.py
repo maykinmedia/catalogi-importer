@@ -175,7 +175,7 @@ TEST_CACHES = {
 class ImportTest(TestCaseMixin, TestCase):
     maxDiff = None
 
-    def setup_import_job(self, m):
+    def setup_import_job(self, m, xml_file):
         self.setup_selectielijst_service()
         self.setup_selectielijst_mocks(m)
 
@@ -206,9 +206,7 @@ class ImportTest(TestCaseMixin, TestCase):
         )
 
         job = QueuedJobFactory(catalog=catalog)
-        job.source.save(
-            "foo.xml", ContentFile(self.get_test_data("example-stripped-single.xml"))
-        )
+        job.source.save("foo.xml", ContentFile(self.get_test_data(xml_file)))
         return job
 
     @override_settings(CACHES=TEST_CACHES)
@@ -217,7 +215,7 @@ class ImportTest(TestCaseMixin, TestCase):
         """
         Test a mocked import on an empty catalog
         """
-        job = self.setup_import_job(m)
+        job = self.setup_import_job(m, "example-stripped-single.xml")
         match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
@@ -289,11 +287,9 @@ class ImportTest(TestCaseMixin, TestCase):
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
-        self.assertEqual(len(messages), 6)  # we got 6 types of resources
-
         expected = [
-            "informatieobjecttype 'Onderzoeksstuk' created new",
-            "zaaktype B1796 created",
+            "informatieobjecttype 'Onderzoeksstuk' created new concept",
+            "zaaktype B1796 created new concept",
             "zaaktype B1796: roltype omschrijving='Initiator' created new",
             "zaaktype B1796: statustype volgnummer='1' created new",
             "zaaktype B1796: resultaattype omschrijving='Geweigerd' created new",
@@ -330,7 +326,7 @@ class ImportTest(TestCaseMixin, TestCase):
         """
         Test a mocked import on an catalog with existing published items
         """
-        job = self.setup_import_job(m)
+        job = self.setup_import_job(m, "example-stripped-single.xml")
         match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
@@ -406,13 +402,11 @@ class ImportTest(TestCaseMixin, TestCase):
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
-        self.assertEqual(len(messages), 8)  # we got 6 types of resources and closed 2
-
         expected = [
-            "informatieobjecttype 'Onderzoeksstuk' existing published resource stays active",
-            "informatieobjecttype 'Onderzoeksstuk' started new concept",
-            "zaaktype B1796 existing published resource stays active",
-            "zaaktype B1796 created new version",
+            "informatieobjecttype 'Onderzoeksstuk' existing published stays active",
+            "informatieobjecttype 'Onderzoeksstuk' created new concept",
+            "zaaktype B1796 existing published stays active",
+            "zaaktype B1796 created new concept",
             "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
             "zaaktype B1796: statustype volgnummer='1' updated existing",
             "zaaktype B1796: resultaattype omschrijving='Geweigerd' updated existing",
@@ -449,7 +443,7 @@ class ImportTest(TestCaseMixin, TestCase):
         """
         Test a mocked import on an catalog with existing concept items
         """
-        job = self.setup_import_job(m)
+        job = self.setup_import_job(m, "example-stripped-single.xml")
         match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
@@ -525,8 +519,6 @@ class ImportTest(TestCaseMixin, TestCase):
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
-        self.assertEqual(len(messages), 6)  # we got 6 types of resources
-
         expected = [
             "informatieobjecttype 'Onderzoeksstuk' updated existing concept",
             "zaaktype B1796 updated existing concept",
@@ -567,7 +559,7 @@ class ImportTest(TestCaseMixin, TestCase):
         """
         Test a mocked import on an catalog with existing published items
         """
-        job = self.setup_import_job(m)
+        job = self.setup_import_job(m, "example-stripped-single.xml")
         job.close_published = True
         job.start_date = date(2021, 4, 1)
         job.save()
@@ -662,12 +654,11 @@ class ImportTest(TestCaseMixin, TestCase):
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
-        self.assertEqual(len(messages), 8)  # we got 6 types of resources and closed 2
         expected = [
-            "informatieobjecttype 'Onderzoeksstuk' closed existing published on 2021-04-01: http://test/api/informatieobjecttypen/1",
-            "informatieobjecttype 'Onderzoeksstuk' started new concept",
-            "zaaktype B1796 closed existing published on 2021-04-01: http://test/api/zaaktypen/1",
-            "zaaktype B1796 created new version",
+            "informatieobjecttype 'Onderzoeksstuk' closed existing published on '2021-04-01'",
+            "informatieobjecttype 'Onderzoeksstuk' created new concept",
+            "zaaktype B1796 closed existing published on '2021-04-01'",
+            "zaaktype B1796 created new concept",
             "zaaktype B1796: roltype omschrijving='Initiator' updated existing",
             "zaaktype B1796: statustype volgnummer='1' updated existing",
             "zaaktype B1796: resultaattype omschrijving='Geweigerd' updated existing",
@@ -701,11 +692,7 @@ class ImportTest(TestCaseMixin, TestCase):
     @override_settings(CACHES=TEST_CACHES)
     @requests_mock.Mocker()
     def test_negative_init_flow(self, m):
-        """
-        Test an mocked import on an empty catalog
-        """
-
-        job = self.setup_import_job(m)
+        job = self.setup_import_job(m, "example-stripped-single.xml")
         match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
@@ -728,7 +715,6 @@ class ImportTest(TestCaseMixin, TestCase):
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
-        self.assertEqual(len(messages), 1)
         expected = [
             "informatieobjecttypen can't be created: Error title: Foo-bar-reason",
         ]
@@ -768,7 +754,7 @@ class ImportTest(TestCaseMixin, TestCase):
         """
         Test a mocked import on an empty catalog
         """
-        job = self.setup_import_job(m)
+        job = self.setup_import_job(m, "example-stripped-single.xml")
         match_check = MockMatcherCheck(m, ignore_predefined=True)
 
         m.get(
@@ -803,10 +789,8 @@ class ImportTest(TestCaseMixin, TestCase):
 
         logs = chop_precheck_from_logs(job.joblog_set.all())
         messages = [log.message for log in logs]
-        self.assertEqual(len(messages), 2)
-
         expected = [
-            "informatieobjecttype 'Onderzoeksstuk' created new",
+            "informatieobjecttype 'Onderzoeksstuk' created new concept",
             "zaaktype B1796: can't be created: Error title: Foo-bar-reason",
         ]
         self.assertEqual(messages, expected)
@@ -844,6 +828,66 @@ class ImportTest(TestCaseMixin, TestCase):
             },
         )
         self.assertEqual(job.state, JobState.completed)
+
+    @requests_mock.Mocker()
+    def test_error_malformed_xml(self, m):
+        job = self.setup_import_job(m, "invalid-malformed.xml")
+
+        # for debugging run the import function
+        # run_import(job)
+
+        # # test the Celery task function
+        import_job_task(job.id)
+
+        # see what happened
+        job.refresh_from_db()
+
+        messages = [log.message for log in job.joblog_set.all()]
+        expected = ["XML parse error"]
+        self.assertEqual(messages, expected)
+
+        self.assertEqual(job.statistics, {})
+        self.assertEqual(job.state, JobState.error)
+
+    @requests_mock.Mocker()
+    def test_error_schema_xml(self, m):
+        job = self.setup_import_job(m, "invalid-schema.xml")
+
+        # for debugging run the import function
+        # run_import(job)
+
+        # # test the Celery task function
+        import_job_task(job.id)
+
+        # see what happened
+        job.refresh_from_db()
+
+        messages = [log.message for log in job.joblog_set.all()]
+        expected = ["non supported XML format"]
+        self.assertEqual(messages, expected)
+
+        self.assertEqual(job.statistics, {})
+        self.assertEqual(job.state, JobState.error)
+
+    @requests_mock.Mocker()
+    def test_error_version_xml(self, m):
+        job = self.setup_import_job(m, "invalid-version.xml")
+
+        # for debugging run the import function
+        # run_import(job)
+
+        # # test the Celery task function
+        import_job_task(job.id)
+
+        # see what happened
+        job.refresh_from_db()
+
+        messages = [log.message for log in job.joblog_set.all()]
+        expected = ["non supported XML version 'ICR1.3.13' (expected 'ICR1.5.x')"]
+        self.assertEqual(messages, expected)
+
+        self.assertEqual(job.statistics, {})
+        self.assertEqual(job.state, JobState.error)
 
 
 def chop_precheck_from_logs(logs):

@@ -140,7 +140,6 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowNotExists(response, "started_at")
         self.assertFormRowNotExists(response, "stopped_at")
 
-        # TODO verify content
         self.assertPyQueryExists(response, ".value-display-table .form-row")
         self.assertPyQueryExists(response, ".joblog-display-table")
 
@@ -183,7 +182,6 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at", "-")
 
-        # TODO verify content
         self.assertPyQueryExists(response, ".value-display-table .form-row")
         self.assertPyQueryNotExists(response, ".joblog-display-table")
 

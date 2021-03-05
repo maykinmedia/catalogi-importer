@@ -204,4 +204,4 @@ class MockMatcherCheck:
         # sort by URL and stringify
         sortable = ((matcher_url(m), m._method) for m in matchers)
         for url, method in sorted(sortable):
-            yield f"{method.ljust(5)} {url}"
+            yield f"  {method.ljust(5)} {url}"

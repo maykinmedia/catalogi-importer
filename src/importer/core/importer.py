@@ -36,6 +36,22 @@ def check_job(job, session):
     return True
 
 
+def check_xml(tree, session):
+    try:
+        version = tree.xpath("/dsp/preambule/specificatieversie")[0].text
+    except IndexError:
+        session.log_error("non supported XML format")
+        return False
+    else:
+        if not version.startswith("ICR1.5."):
+            session.log_error(
+                f"non supported XML version '{version}' (expected 'ICR1.5.x')"
+            )
+            return False
+
+    return True
+
+
 def precheck_import(job):
     """
     run the precheck on a job and return additional information in the session
@@ -50,8 +66,8 @@ def precheck_import(job):
         session.log_error("XML parse error.")
         return session
 
-    # TODO XML version (1.5?)
-    # TODO XML schema
+    if not check_xml(tree, session):
+        return session
 
     zaaktypen, iotypen = parse_xml(session, tree, job.year)
 
@@ -77,8 +93,11 @@ def run_import(job):
     try:
         tree = etree.fromstring(job.source.read())
     except LxmlError:
-        session.log_error("XML parse error.")
-        raise ImporterException()
+        session.log_error("XML parse error")
+        raise ImporterException("XML parse error.")
+
+    if not check_xml(tree, session):
+        raise ImporterException("failed XML check")
 
     zaaktypen, iotypen = parse_xml(session, tree, job.year)
 

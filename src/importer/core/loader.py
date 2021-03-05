@@ -34,7 +34,6 @@ def retrieve_zaaktype(session, log_scope: str, identificatie: str):
         },
     )
     if result["count"] > 1:
-        # TODO what?
         raise LoaderException(f"{log_scope} found multiple conflicting resources")
     elif result["count"] == 1:
         return result["results"][0]
@@ -78,7 +77,7 @@ def update_zaaktype(session, zaaktype_data: dict):
 
         # create new resource
         zaaktype = client.create("zaaktype", data=zaaktype_data)
-        session.log_info(f"{log_scope} created new version")
+        session.log_info(f"{log_scope} created new concept")
         session.counter.increment_updated(ObjectTypenKeys.zaaktypen)
 
     return zaaktype
@@ -135,14 +134,14 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                         url=remote["url"],
                     )
                     session.log_info(
-                        f"{log_scope} closed existing published on {iotype_data['beginGeldigheid']}: {remote['url']}"
+                        f"{log_scope} closed existing published on '{iotype_data['beginGeldigheid']}'"
                     )
                 else:
                     session.log_info(f"{log_scope} existing published stays active")
 
                 # create new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
-                session.log_info(f"{log_scope} started new concept")
+                session.log_info(f"{log_scope} created new concept")
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
         except (ClientError, HTTPError) as exc:
             session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
