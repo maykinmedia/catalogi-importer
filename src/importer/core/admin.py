@@ -2,7 +2,6 @@ import os
 
 from django import forms
 from django.contrib import admin
-from django.db import models
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -16,6 +15,7 @@ from importer.core.reporting import (
     transform_import_statistics,
     transform_precheck_statistics,
 )
+from importer.core.selectielijst import get_procestype_years
 from importer.core.tasks import import_job_task
 from importer.utils.forms import StaticHiddenField
 
@@ -50,6 +50,25 @@ class CatalogConfigAdmin(admin.ModelAdmin):
         return request.user.is_superuser
 
 
+def get_procestype_year_choices():
+    return [(str(y), str(y)) for y in get_procestype_years()]
+
+
+class JobForm(forms.ModelForm):
+    year = forms.TypedChoiceField(
+        localize=False, coerce=int, choices=get_procestype_year_choices
+    )
+
+    class Meta:
+        fields = (
+            "catalog",
+            "year",
+            "source",
+            "start_date",
+            "close_published",
+        )
+
+
 class JobStateQueueForm(forms.ModelForm):
     state = StaticHiddenField(JobState.queued)
 
@@ -78,9 +97,7 @@ class JobAdmin(admin.ModelAdmin):
     ordering = [
         "-created_at",
     ]
-    formfield_overrides = {
-        models.SmallIntegerField: {"widget": forms.TextInput},
-    }
+    form = JobForm
 
     def get_fields(self, request, job=None):
         """

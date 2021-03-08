@@ -1,3 +1,4 @@
+from operator import itemgetter
 from typing import List
 
 from zgw_consumers.client import ZGWClient
@@ -31,3 +32,7 @@ def get_resultaattype_omschrijvingen() -> List[dict]:
 def get_resultaaten() -> List[dict]:
     client = get_client()
     return get_paginated_results(client, "resultaat")
+
+
+def get_procestype_years():
+    return list(sorted(set(map(itemgetter("jaar"), get_procestypen()))))
