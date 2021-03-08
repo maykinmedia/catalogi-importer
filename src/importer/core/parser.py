@@ -193,7 +193,7 @@ def get_resultaattype_omschrijving(
 
     if not filtered_omschrijvingen:
         session.log_warning(
-            f'{log_scope} Used default value for "Resultaattype.omschrijving" ({DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN}): Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
+            f'{log_scope} Used default value for "Resultaattype.omschrijving": Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
             ObjectTypenKeys.resultaattypen,
         )
         return DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN
