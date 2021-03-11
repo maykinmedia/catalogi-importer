@@ -32,6 +32,14 @@
     django_app_docker_replicas: 1
     django_app_docker_port_start: 12000
 
+    django_app_docker_volumes:
+      - name: "{{ django_app_docker_name_prefix }}-media"
+        mount: "/app/media"
+        mode: "rw"
+      - name: "{{ django_app_docker_name_prefix }}-private_media"
+        mount: "/app/private_media"
+        mode: "rw"
+
     # PostgreSQL
     postgresql_version: "10"
     postgresql_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
