@@ -22,5 +22,5 @@ def update_admin_index(sender, **kwargs):
 class AccountsConfig(AppConfig):
     name = "importer.accounts"
 
-    # def ready(self):
-    #     post_migrate.connect(update_admin_index, sender=self)
+    def ready(self):
+        post_migrate.connect(update_admin_index, sender=self)
