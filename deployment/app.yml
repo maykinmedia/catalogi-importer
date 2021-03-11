@@ -55,7 +55,10 @@
         owner: "{{ django_app_docker_db_username }}"
         port: "{{ django_app_docker_db_port }}"
 
+    # Nginx
     django_app_nginx_letsencrypt_enabled: false
+    django_app_nginx_extra_directives:
+      - 'client_max_body_size 50M'
 
     # Celery
     django_app_docker_use_celery: true

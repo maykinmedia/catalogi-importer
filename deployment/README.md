@@ -36,8 +36,3 @@
 # TODO's
 
 1. Private media volume
-2. Max body size in Nginx need to be configurable.
-
-## Workarounds
-
-1. Manually increased `client_max_body_size` in Nginx config to `50M` since it cannot be configured with Ansible.
