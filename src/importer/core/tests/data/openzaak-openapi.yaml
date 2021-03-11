@@ -7630,7 +7630,7 @@ paths:
           type: string
           format: uuid
 servers:
-  - url: http://test/api
+  - url: https://test/api
 components:
   requestBodies:
     Eigenschap:

@@ -13,7 +13,7 @@ from importer.core.reporting import format_exception
 logger = logging.getLogger(__name__)
 
 
-FLUSH_OBJECTS = 1 + 10
+FLUSH_OBJECTS = 10
 
 
 class LoaderException(Exception):
@@ -34,7 +34,6 @@ def retrieve_zaaktype(session, log_scope: str, identificatie: str):
         },
     )
     if result["count"] > 1:
-        # TODO what?
         raise LoaderException(f"{log_scope} found multiple conflicting resources")
     elif result["count"] == 1:
         return result["results"][0]
@@ -55,24 +54,31 @@ def update_zaaktype(session, zaaktype_data: dict):
     if not remote:
         # create new
         zaaktype = client.create("zaaktype", data=zaaktype_data)
-        session.log_info(f"{log_scope} created")
+        session.log_info(f"{log_scope} created new concept")
+        session.counter.increment_created(ObjectTypenKeys.zaaktypen)
     elif remote["concept"]:
         # update old resource which is still in concept
         zaaktype = client.update("zaaktype", zaaktype_data, url=remote["url"])
         session.log_info(f"{log_scope} updated existing concept")
+        session.counter.increment_updated(ObjectTypenKeys.zaaktypen)
     else:
         # close old resource with start-date of the new resource
-        client.partial_update(
-            "zaaktype",
-            {"eindeGeldigheid": zaaktype_data["beginGeldigheid"]},
-            url=remote["url"],
-        )
-        session.log_info(
-            f"{log_scope} closed old resource on {zaaktype_data['beginGeldigheid']}: {remote['url']}"
-        )
+        if session.job.close_published:
+            client.partial_update(
+                "zaaktype",
+                {"eindeGeldigheid": zaaktype_data["beginGeldigheid"]},
+                url=remote["url"],
+            )
+            session.log_info(
+                f"{log_scope} closed existing published on '{zaaktype_data['beginGeldigheid']}'"
+            )
+        else:
+            session.log_info(f"{log_scope} existing published stays active")
+
         # create new resource
         zaaktype = client.create("zaaktype", data=zaaktype_data)
-        session.log_info(f"{log_scope} created new version")
+        session.log_info(f"{log_scope} created new concept")
+        session.counter.increment_updated(ObjectTypenKeys.zaaktypen)
 
     return zaaktype
 
@@ -87,16 +93,6 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     3) run the update/create logic on all items
     """
     client = session.client_from_url(session.catalogus_url)
-
-    # pre-process and backfill
-    for iotype_data in iotypen_data:
-        iotype_data["catalogus"] = session.catalogus_url
-        if not iotype_data["beginGeldigheid"]:
-            today = date.today().isoformat()
-            iotype_data["beginGeldigheid"] = today
-            session.log_info(
-                f"iotype '{iotype_data['omschrijving']}' doesn't have beginGeldigheid. It's set as today ({today})."
-            )
 
     # fetch existing and create lookup
     remote_list = get_paginated_results(
@@ -113,13 +109,15 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
         if i % FLUSH_OBJECTS == 0:
             session.flush_counts()
 
+        iotype_data["catalogus"] = session.catalogus_url
+
         log_scope = f"informatieobjecttype '{iotype_data['omschrijving']}'"
         try:
             remote = remote_map.get(iotype_data["omschrijving"])
             if not remote:
                 # new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
-                session.log_info(f"{log_scope} created new")
+                session.log_info(f"{log_scope} created new concept")
                 session.counter.increment_created(ObjectTypenKeys.informatieobjecttypen)
             elif remote["concept"]:
                 iotype = client.update(
@@ -129,17 +127,21 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
             else:
                 # close old resource with start-date of the new resource
-                client.partial_update(
-                    "informatieobjecttype",
-                    {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
-                    url=remote["url"],
-                )
-                session.log_info(
-                    f"{log_scope} closed old resource on {iotype_data['beginGeldigheid']}: {remote['url']}"
-                )
+                if session.job.close_published:
+                    client.partial_update(
+                        "informatieobjecttype",
+                        {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
+                        url=remote["url"],
+                    )
+                    session.log_info(
+                        f"{log_scope} closed existing published on '{iotype_data['beginGeldigheid']}'"
+                    )
+                else:
+                    session.log_info(f"{log_scope} existing published stays active")
+
                 # create new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
-                session.log_info(f"{log_scope} created new version")
+                session.log_info(f"{log_scope} created new concept")
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
         except (ClientError, HTTPError) as exc:
             session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
