@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.files.base import ContentFile
 
 import requests_mock
@@ -93,6 +95,8 @@ class JobAdminViewTest(AdminWebTest):
         form = response.form
         form["catalog"].select(value=catalog.id)
         form["year"] = 2020
+        form["start_date"] = "2020-02-28"
+        form["close_published"] = True
         form["source"] = Upload("export.xml", xml_data, "text/xml")
 
         response = form.submit()
@@ -100,6 +104,8 @@ class JobAdminViewTest(AdminWebTest):
         job = Job.objects.get()
         self.assertEqual(job.year, 2020)
         self.assertEqual(job.catalog, catalog)
+        self.assertEqual(job.start_date, date(2020, 2, 28))
+        self.assertEqual(job.close_published, True)
         self.assertEqual(job.state, JobState.precheck)
         self.assertEqual(job.source.read(), xml_data)
 
@@ -134,7 +140,6 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowNotExists(response, "started_at")
         self.assertFormRowNotExists(response, "stopped_at")
 
-        # TODO verify content
         self.assertPyQueryExists(response, ".value-display-table .form-row")
         self.assertPyQueryExists(response, ".joblog-display-table")
 
@@ -150,6 +155,8 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "year_fmt")
         self.assertFormRowReadonly(response, "source_fmt")
         self.assertFormRowReadonly(response, "state")
+        self.assertFormRowReadonly(response, "start_date")
+        self.assertFormRowReadonly(response, "close_published")
         self.assertFormRowReadonly(response, "created_at")
         self.assertFormRowReadonly(response, "started_at", "-")
         self.assertFormRowReadonly(response, "stopped_at", "-")
@@ -169,11 +176,12 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "year_fmt")
         self.assertFormRowReadonly(response, "source_fmt")
         self.assertFormRowReadonly(response, "state")
+        self.assertFormRowReadonly(response, "start_date")
+        self.assertFormRowReadonly(response, "close_published")
         self.assertFormRowReadonly(response, "created_at")
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at", "-")
 
-        # TODO verify content
         self.assertPyQueryExists(response, ".value-display-table .form-row")
         self.assertPyQueryNotExists(response, ".joblog-display-table")
 
@@ -191,6 +199,8 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "source_fmt")
         self.assertFormRowReadonly(response, "created_at")
         self.assertFormRowReadonly(response, "state")
+        self.assertFormRowReadonly(response, "start_date")
+        self.assertFormRowReadonly(response, "close_published")
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at")
 
@@ -211,6 +221,8 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "source_fmt")
         self.assertFormRowReadonly(response, "created_at")
         self.assertFormRowReadonly(response, "state")
+        self.assertFormRowReadonly(response, "start_date")
+        self.assertFormRowReadonly(response, "close_published")
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at")
 

@@ -49,13 +49,25 @@ def find(el: etree.ElementBase, path: str, required=True) -> str:
         return result or ""
 
 
-def value_or_default(session, log_scope, value, default):
+def value_or_default(session, log_scope, value, default, type_key):
     """return value if set, else log and return default"""
     if not value:
-        session.log_info(f"{log_scope} not defined. It will be set as '{default}'")
+        session.log_info(
+            f"{log_scope} not defined. It will be set as '{default}'", type_key
+        )
         return default
     else:
         return value
+
+
+def trim_string(session, log_scope, string, length, field_name, type_key):
+    ret = string[:length].strip()
+    if ret != string:
+        session.log_info(
+            f"{log_scope} Imported value for '{field_name}' is trimmed from {len(string)} characters to {length}.",
+            type_key,
+        )
+    return ret
 
 
 def get_duration(value: str, units: str) -> Optional[str]:
@@ -98,7 +110,13 @@ def quote_join(seq):
 
 
 def get_choice_field(
-    session, log_scope, value: str, choices: dict, default="", required=False
+    session,
+    log_scope,
+    value: str,
+    choices: dict,
+    type_key: str,
+    default="",
+    required=False,
 ) -> str:
     formatted_value = value.lower().replace(" ", "_")
     if formatted_value in choices:
@@ -107,13 +125,17 @@ def get_choice_field(
     if not value:
         if required:
             session.log_error(
-                f"{log_scope} not defined but marked as required. If continued, this will be set as '{default}'"
+                f"{log_scope} not defined but marked as required. If continued, this will be set as '{default}'",
+                type_key,
             )
         else:
-            session.log_info(f"{log_scope} not defined. It will be set as '{default}'")
+            session.log_info(
+                f"{log_scope} not defined. It will be set as '{default}'", type_key
+            )
     else:
         session.log_warning(
-            f"{log_scope} cannot find '{formatted_value}' in options {quote_join(choices)}. It will be set as '{default}'"
+            f"{log_scope} cannot find '{formatted_value}' in options {quote_join(choices)}. It will be set as '{default}'",
+            type_key,
         )
     return default
 
@@ -171,7 +193,7 @@ def get_resultaattype_omschrijving(
 
     if not filtered_omschrijvingen:
         session.log_warning(
-            f'{log_scope} Used default value for "Resultaattype.omschrijving" ({DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN}): Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
+            f'{log_scope} Used default value for "Resultaattype.omschrijving": Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
             ObjectTypenKeys.resultaattypen,
         )
         return DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN
@@ -207,8 +229,6 @@ def construct_zaaktype_data(
 ) -> dict:
     fields = process.find("velden")
 
-    # TODO report more default value usage
-
     indicatie_intern_of_extern = (
         "extern"
         if "extern" in find(fields, "zaaktype-categorie", False).lower()
@@ -219,24 +239,28 @@ def construct_zaaktype_data(
         f"{log_scope} handelingInitiator",
         find(fields, "zaaktype-naam/structuur/handeling-initiator", False),
         DEFAULT_HANDELING_INITIATOR,
+        ObjectTypenKeys.zaaktypen,
     )
     aanleiding = value_or_default(
         session,
         f"{log_scope} aanleiding",
         find(fields, "aanleiding", False),
         DEFAULT_AANLEIDING,
+        ObjectTypenKeys.zaaktypen,
     )
     onderwerp = value_or_default(
         session,
         f"{log_scope} onderwerp",
         find(fields, "zaaktype-naam/structuur/onderwerp", False),
         DEFAULT_ONDERWERP,
+        ObjectTypenKeys.zaaktypen,
     )
     handeling_behandelaar = value_or_default(
         session,
         f"{log_scope} handeling_behandelaar",
         find(fields, "zaaktype-naam/structuur/handeling-behandelaar", False),
         DEFAULT_HANDELING_BEHANDELAAR,
+        ObjectTypenKeys.zaaktypen,
     )
 
     servicenorm = get_duration(
@@ -274,6 +298,7 @@ def construct_zaaktype_data(
             f"{log_scope} vertrouwelijkheidaanduiding",
             find(fields, "vertrouwelijkheid", False),
             VertrouwelijkheidsAanduidingen.values,
+            ObjectTypenKeys.zaaktypen,
             default=DEFAULT_VERTROUWELIJKHEID,
             required=True,
         ),
@@ -302,15 +327,13 @@ def construct_zaaktype_data(
         "referentieproces": {"naam": find(fields, "ztc-procestype")},
         # Set during `load_data`
         # "catalogus": "",
-        "beginGeldigheid": get_date(find(fields, "actueel-van")),
-        "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
+        "beginGeldigheid": session.job.start_date.isoformat(),
+        "eindeGeldigheid": None,
         "versiedatum": get_date(find(fields, "actueel-van")),
         "servicenorm": servicenorm,
-        # TODO no mapping for required field
         "productenOfDiensten": [],
         "gerelateerdeZaaktypen": [],
         "besluittypen": [],
-        # TODO no mapping for non-required fields
         # "deelzaaktypen": [],
     }
 
@@ -326,7 +349,8 @@ def construct_roltype_data(session, log_scope, roltype: etree.ElementBase) -> di
             f"{log_scope} omschrijvingGeneriek",
             find(fields, "naam-model", False),
             RolOmschrijving.values,
-            DEFAULT_ROL_OMSCHRIVING,
+            ObjectTypenKeys.roltypen,
+            default=DEFAULT_ROL_OMSCHRIVING,
         ),
     }
 
@@ -340,7 +364,6 @@ def construct_statustype_data(
         "omschrijving": find(fields, "naam"),
         "omschrijvingGeneriek": find(fields, "naam-model", False),
         "statustekst": find(fields, "bericht", False),
-        # TODO no mapping for non-required fields
         # "informeren": true
     }
 
@@ -355,7 +378,8 @@ def construct_resultaattype_data(
         f"{log_scope} afleidingswijze",
         find(fields, "brondatum-archiefprocedure", False),
         BrondatumArchiefprocedureAfleidingswijze.values,
-        DEFAULT_AFLEIDINGSWIJZE,
+        ObjectTypenKeys.resultaattypen,
+        default=DEFAULT_AFLEIDINGSWIJZE,
     )
 
     if afleidingswijze == BrondatumArchiefprocedureAfleidingswijze.afgehandeld:
@@ -364,6 +388,15 @@ def construct_resultaattype_data(
         datumkenmerk = toelichting.split(":")[0]
     else:
         datumkenmerk = toelichting.split(",")[-1].strip()
+
+    datumkenmerk = trim_string(
+        session,
+        log_scope,
+        datumkenmerk,
+        80,
+        "datumkenmerk",
+        ObjectTypenKeys.resultaattypen,
+    )
 
     resultaattype_data = {
         "omschrijving": find(fields, "naam")[:20],
@@ -379,16 +412,16 @@ def construct_resultaattype_data(
             f"{log_scope} archiefnominatie",
             find(fields, "waardering", False),
             Archiefnominatie.values,
-            DEFAULT_ARCHIEFNOMINATIE,
+            ObjectTypenKeys.resultaattypen,
+            default=DEFAULT_ARCHIEFNOMINATIE,
         ),
         "archiefactietermijn": get_duration(
             find(fields, "bewaartermijn", False),
             find(fields, "bewaartermijn-eenheid", False),
         ),
-        # TODO report trimming datumkenmerk
         "brondatumArchiefprocedure": {
             "afleidingswijze": afleidingswijze,
-            "datumkenmerk": datumkenmerk[:80],
+            "datumkenmerk": datumkenmerk,
             # FIXME fixed values are set to prevent 500 error
             "einddatumBekend": False,
             "objecttype": "",
@@ -416,10 +449,19 @@ def construct_resultaattype_data(
 
 def construct_iotype_data(session, log_scope, document: etree.ElementBase) -> dict:
     fields = document.find("velden")
-    # TODO report trimming string length
-    omschrijving = find(fields, "naam")[:80].strip()
 
-    log_scope = f"{log_scope} iotype '{omschrijving}'"
+    omschrijving = find(fields, "naam")
+    # dirty trim for log_scope
+    log_scope = f"{log_scope} iotype '{omschrijving[:80].strip()}'"
+    # clean trim with reporting
+    omschrijving = trim_string(
+        session,
+        log_scope,
+        omschrijving,
+        80,
+        "omschrijving",
+        ObjectTypenKeys.resultaattypen,
+    )
 
     iotype_data = {
         "omschrijving": omschrijving,
@@ -429,33 +471,36 @@ def construct_iotype_data(session, log_scope, document: etree.ElementBase) -> di
             f"{log_scope} vertrouwelijkheidaanduiding",
             find(fields, "vertrouwelijkheid", False),
             VertrouwelijkheidsAanduidingen.values,
-            DEFAULT_VERTROUWELIJKHEID,
+            ObjectTypenKeys.informatieobjecttypen,
+            default=DEFAULT_VERTROUWELIJKHEID,
         ),
         # begin data would be set during merging different iotypen later
-        "beginGeldigheid": get_date(find(fields, "actueel-van", False)),
-        "eindeGeldigheid": get_date(find(fields, "actueel-tot", False)),
+        "beginGeldigheid": session.job.start_date.isoformat(),
+        "eindeGeldigheid": None,
     }
-    if not iotype_data["beginGeldigheid"]:
-        # note we cant set this here because some logic depends on it
-        session.log_info(
-            f"{log_scope} doesn't have beginGeldigheid. It will be set to today.",
-            ObjectTypenKeys.informatieobjecttypen,
-        )
     return iotype_data
 
 
 def construct_ziotype_data(session, log_scope, document: etree.ElementBase) -> dict:
     fields = document.find("velden")
+    omschrijving = trim_string(
+        session,
+        log_scope,
+        find(fields, "naam"),
+        80,
+        "omschrijving",
+        ObjectTypenKeys.resultaattypen,
+    )
     return {
-        # TODO warn on trim naam
-        "informatieobjecttype_omschrijving": find(fields, "naam")[:80].strip(),
+        "informatieobjecttype_omschrijving": omschrijving,
         "volgnummer": int(document.get("volgnummer")),
         "richting": get_choice_field(
             session,
             f"{log_scope} richting",
             find(fields, "type", False),
             RichtingChoices.values,
-            DEFAULT_RICHTING,
+            ObjectTypenKeys.zaakinformatieobjecttypen,
+            default=DEFAULT_RICHTING,
         ),
         # TODO no mapping for non-required fields
         # "statustype": "http://example.com"
@@ -465,6 +510,17 @@ def construct_ziotype_data(session, log_scope, document: etree.ElementBase) -> d
 def parse_xml(
     session, tree: etree.ElementTree, processtype_year: int
 ) -> Tuple[list, list]:
+
+    """
+    <dsp
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <preambule>
+        <datum>2020-08-04T14:11:20</datum>
+        <beheersapplicatie>iNavigator 3.2.0.95</beheersapplicatie>
+        <gebruiker>admin</gebruiker>
+        <specificatieversie>ICR1.5.13</specificatieversie>
+    """
+
     zaaktypen_data = []
     iotypen_dict = {}
     for process in tree.xpath("/dsp/processen")[0]:

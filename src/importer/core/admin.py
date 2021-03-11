@@ -2,7 +2,6 @@ import os
 
 from django import forms
 from django.contrib import admin
-from django.db import models
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -16,6 +15,7 @@ from importer.core.reporting import (
     transform_import_statistics,
     transform_precheck_statistics,
 )
+from importer.core.selectielijst import get_procestype_years
 from importer.core.tasks import import_job_task
 from importer.utils.forms import StaticHiddenField
 
@@ -50,6 +50,25 @@ class CatalogConfigAdmin(admin.ModelAdmin):
         return request.user.is_superuser
 
 
+def get_procestype_year_choices():
+    return [(str(y), str(y)) for y in get_procestype_years()]
+
+
+class JobForm(forms.ModelForm):
+    year = forms.TypedChoiceField(
+        localize=False, coerce=int, choices=get_procestype_year_choices
+    )
+
+    class Meta:
+        fields = (
+            "catalog",
+            "year",
+            "source",
+            "start_date",
+            "close_published",
+        )
+
+
 class JobStateQueueForm(forms.ModelForm):
     state = StaticHiddenField(JobState.queued)
 
@@ -78,9 +97,7 @@ class JobAdmin(admin.ModelAdmin):
     ordering = [
         "-created_at",
     ]
-    formfield_overrides = {
-        models.SmallIntegerField: {"widget": forms.TextInput},
-    }
+    form = JobForm
 
     def get_fields(self, request, job=None):
         """
@@ -91,6 +108,8 @@ class JobAdmin(admin.ModelAdmin):
                 "catalog",
                 "year",
                 "source",
+                "start_date",
+                "close_published",
             ]
         elif job.state == JobState.precheck:
             return [
@@ -98,6 +117,8 @@ class JobAdmin(admin.ModelAdmin):
                 "catalog_fmt",
                 "year_fmt",
                 "source_fmt",
+                "start_date",
+                "close_published",
                 "created_at",
             ]
         else:
@@ -106,6 +127,8 @@ class JobAdmin(admin.ModelAdmin):
                 "year_fmt",
                 "source_fmt",
                 "state",
+                "start_date",
+                "close_published",
                 "created_at",
                 "started_at",
                 "stopped_at",
@@ -126,12 +149,16 @@ class JobAdmin(admin.ModelAdmin):
             "catalog_fmt",
             "year_fmt",
             "source_fmt",
+            "start_date",
+            "close_published",
         }
         if not job:
             return fields - {
                 "catalog",
                 "year",
                 "source",
+                "start_date",
+                "close_published",
             }
         elif job.state == JobState.precheck:
             return fields - {
@@ -144,7 +171,6 @@ class JobAdmin(admin.ModelAdmin):
         return job.joblog_set.order_by("pk")
 
     def change_view(self, request, object_id, form_url="", context=None):
-        # TODO do we really have to retrieve this ourselves?
         job = Job.objects.get(id=object_id)
 
         context = context or {}
@@ -208,8 +234,7 @@ class JobAdmin(admin.ModelAdmin):
         pass
 
     def has_delete_permission(self, request, obj=None):
-        # TODO allow deletion for cleanup of failed prechecks?
-        return False  # request.user.is_superuser
+        return False
 
     def has_change_permission(self, request, obj=None):
         # precheck is the only state that needs user interaction to continue

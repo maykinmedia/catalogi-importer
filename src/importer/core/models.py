@@ -1,3 +1,4 @@
+from datetime import date
 from urllib.parse import urljoin
 
 from django.contrib.postgres.fields import JSONField
@@ -12,7 +13,7 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.translation import gettext_lazy as _
 
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, HTTPError
 from solo.models import SingletonModel
 from zds_client import ClientError, get_operation_url
 from zgw_consumers.constants import APITypes
@@ -95,7 +96,7 @@ class CatalogConfig(models.Model):
             )
             url = urljoin(client.base_url, path)
             catalog = client.retrieve("catalogus", url=url)
-        except ConnectionError:
+        except (HTTPError, ConnectionError):
             raise ValidationError(
                 _("Cannot verify Catalog: check the Service is configured correctly"),
                 code="invalid",
@@ -141,6 +142,16 @@ class Job(models.Model):
         storage=private_storage,
         validators=[FileExtensionValidator(["xml"])],
         help_text=_("i-Navigator XML export file."),
+    )
+    start_date = models.DateField(
+        _("Start date"),
+        default=date.today,
+        help_text=_("Default start date of new records that have nothing set."),
+    )
+    close_published = models.BooleanField(
+        _("Close published records"),
+        default=False,
+        help_text=_("Close existing records if a new version is created"),
     )
     state = models.CharField(
         _("State"),
@@ -233,8 +244,6 @@ class JobLog(models.Model):
     )
 
     message = models.TextField(_("Message"), default="")
-
-    # TODO we probably want to register more fields, like the sub catalog, object uri etc
 
     def message_trim_line(self, length=64):
         line = self.message.splitlines()[0]
