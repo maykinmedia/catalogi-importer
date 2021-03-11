@@ -3,11 +3,62 @@
 {% block content %}
 
   <div class="px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
-    <h1 class="display-4">{{ settings.PROJECT_NAME }} API</h1>
+    <h1 class="display-4">{{ settings.PROJECT_NAME }}</h1>
     <p class="lead">{{ settings.SITE_TITLE }}</p>
   </div>
 
   <div class="container text-center">
+
+    <ul class="nav nav-tabs justify-content-center" id="languageChoice" role="tablist">
+      <li class="nav-item ">
+        <a class="nav-link text-info" id="en-tab" data-toggle="tab" href="#en" role="tab" aria-controls="en" aria-selected="false">English</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link active text-info" id="nl-tab" data-toggle="tab" href="#nl" role="tab" aria-controls="nl" aria-selected="true">Nederlands</a>
+      </li>
+    </ul>
+    <div class="tab-content" id="description">
+      <div class="tab-pane fade" id="en" role="tabpanel" aria-labelledby="en-tab">
+
+        <br>
+        <p>
+          The Catalogi API in <a class="text-info" href="https://opengem.nl/producten/open-zaak/">
+          Open Zaak</a> is the main place to store your zaaktypes. However, 
+          many municipalities currently have their zaaktypes stored in 
+          i-Navigator.
+        </p>
+        <p>
+          To keep the manual overhead to a minimum, the <strong>Catalogi Importer</strong> can 
+          load i-Navigator exports into any catalog present in a Catalogi API. 
+          All zaaktypes are created as concepts, so you can easily make 
+          additional changes afterwards if needed.
+        </p>
+
+      </div>
+      <div class="tab-pane fade show active" id="nl" role="tabpanel" aria-labelledby="nl-tab">
+
+        <br>
+        <p>
+          De Catalogi API in <a class="text-info" href="https://opengem.nl/producten/open-zaak/">
+          Open Zaak</a> is de bron om alle zaaktypen te ontsluiten. Veel 
+          gemeenten gebruiken op dit moment echter het i-Navigator product.
+        </p>
+        <p>
+          Om het importeren zo geautomatiseerd mogelijk te maken, kan de <strong>Catalogi
+          Importer</strong> een i-Navigator export inladen in elke catalogus die beschikbaar is via
+          een Catalogi API. Alle zaaktypen worden aangemaakt als concept zodat achteraf
+          nog eenvoudig wijzigingen kunnen worden gemaakt.
+        </p>
+
+      </div>
+    </div>
+
+    <hr>
+
+    <p>
+      <b>Licensed under the <a class="text-info" href="https://github.com/maykinmedia/catalogi-importer/blob/master/LICENSE.md">
+        European Union Public License (EUPL) 1.2</a></b>
+    </p>
 
     <p>
       <a href="{% url 'admin:index' %}" class="btn btn-sm btn-danger"><i class="fas fa-lock"></i> Administration</a>

@@ -301,7 +301,7 @@ AUTHENTICATION_BACKENDS = [
 #
 # Custom settings
 #
-PROJECT_NAME = "Importer"
+PROJECT_NAME = "Catalogi Importer"
 SITE_TITLE = "Starting point"
 ENVIRONMENT = None
 SHOW_ALERT = True
