@@ -8,3 +8,4 @@ Introduction
    :caption: Further reading
 
    open-source/index
+   team

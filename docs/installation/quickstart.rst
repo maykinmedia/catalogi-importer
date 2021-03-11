@@ -13,9 +13,6 @@ started quickly and these should never be used for anything besides testing:
 
 With the above remarks in mind, let's go:
 
-Objecttypes API
----------------
-
 1. Create a project folder:
 
    .. code:: shell
@@ -52,4 +49,4 @@ Objecttypes API
       $ docker-compose exec web src/manage.py loaddata demodata
 
 
-TODO: Auth, fixtures, objects...
+TODO: Superusre, Auth, fixtures, objects...

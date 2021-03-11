@@ -1,37 +1,10 @@
 .. _import_index:
 
-Run Import
-============
+Importing i-Navigator files
+===========================
 
-After the _setup_index of the credentials we can define **Catalog configurations** and run **Import Jobs**:
-
-
-Define a Catalog
-----------------
-
-We need to retrieve the Uuid of the Open Zaak Catalog we want to import to from the Open Zaak admin:
-
-   a. Navigate to **Gegevens > Catalogi**
-   b. Select the Catalogus we want to import to, or create a new one for testing purposes.
-   c. Copy the **Uuid** value from the form.
-
-Then we configure this Catalog in Catalogi Importer:
-
-   a. Navigate to **Importer > Catalog configurations**
-   b. Click **Add Catalog configuration**.
-   c. Fill out the form:
-
-      - Select the **Service** that with the label we configured earlier.
-      - Paste the **Uuid** we copied from Open Zaak.
-      - Enter a descriptive **Label**, ideally matching the Catalog in Open Zaak.
-
-   d. Click **Save**.
-   e. The system will validate the **Uuid** at the selected **Service**.
-
-      - If the details are correct the RSIN and domain will be retrieved and printed
-
-This catalog is now configured in Catalogi Importer to accept one or more **Import Jobs**.
-
+Make sure you have an XML export of i-Navigator ready and :ref:`configured <setup_index>` the 
+Catalog Importer correctly.
 
 Create an Import Job
 --------------------
