@@ -1,0 +1,94 @@
+[
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 2,
+        "name": "Configuration",
+        "slug": "configuration",
+        "models": [
+            [
+                "admin_index",
+                "appgroup"
+            ],
+            [
+                "core",
+                "catalogconfig"
+            ],
+            [
+                "core",
+                "selectielijstconfig"
+            ],
+            [
+                "sites",
+                "site"
+            ],
+            [
+                "zgw_consumers",
+                "service"
+            ]
+        ]
+    }
+},
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 0,
+        "name": "Accounts",
+        "slug": "accounts",
+        "models": [
+            [
+                "accounts",
+                "user"
+            ],
+            [
+                "auth",
+                "group"
+            ],
+            [
+                "auth",
+                "permission"
+            ]
+        ]
+    }
+},
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 1,
+        "name": "Importer",
+        "slug": "importer",
+        "models": [
+            [
+                "core",
+                "job"
+            ]
+        ]
+    }
+},
+{
+    "model": "admin_index.appgroup",
+    "fields": {
+        "order": 3,
+        "name": "Logging",
+        "slug": "logging",
+        "models": [
+            [
+                "admin",
+                "logentry"
+            ],
+            [
+                "axes",
+                "accessattempt"
+            ],
+            [
+                "axes",
+                "accesslog"
+            ],
+            [
+                "core",
+                "joblog"
+            ]
+        ]
+    }
+}
+]
