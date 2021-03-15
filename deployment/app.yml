@@ -40,28 +40,11 @@
         mount: "/app/private_media"
         mode: "rw"
 
-    # PostgreSQL
-    postgresql_version: "10"
-    postgresql_data_dir: "/var/lib/postgresql/{{ postgresql_version }}/main"
-    postgresql_bin_path: "/usr/lib/postgresql/{{ postgresql_version }}/bin"
-    postgresql_config_path: "/etc/postgresql/{{ postgresql_version }}/main"
-    postgresql_daemon: "postgresql@{{ postgresql_version }}-main"
-    postgresql_packages:
-      - "postgresql-{{ postgresql_version }}"
-      - "postgresql-contrib-{{ postgresql_version }}"
-      - libpq-dev
+    django_app_nginx_extra_directives:
+      - 'client_max_body_size 100M'
 
-    postgresql_python_library: python3-psycopg2
-    postgresql_hba_entries: []  # do not touch pg_hba.conf
-
-    postgresql_users:
-      - name: "{{ django_app_docker_db_username }}"
-        password: "{{ django_app_docker_db_password }}"
-        port: "{{ django_app_docker_db_port }}"
-    postgresql_databases:
-      - name: "{{ django_app_docker_db_name }}"
-        owner: "{{ django_app_docker_db_username }}"
-        port: "{{ django_app_docker_db_port }}"
+    django_app_nginx_include_templates:
+      - "templates/nginx-includes.conf.tpl"
 
     # Nginx
     django_app_nginx_letsencrypt_enabled: false
@@ -75,29 +58,11 @@
     django_app_docker_flower_port: 13555
 
   roles:
-    # Uncomment if you want to install PostgreSQL on target machine.
-    # - role: geerlingguy.postgresql
-
     - role: django_app_docker
-
     - role: django_app_nginx
-
-    # Uncomment if you want to install Nginx on target machine.
-    # - role: nginxinc.nginx
-    #   vars:
-    #     nginx_enable: false
-    #     nginx_start: false
-    #     nginx_install_from: os_repository
-    #     nginx_http_template_enable: true
-    #     nginx_http_template:
-    #       default:
-    #         # set by open_zaak_docker role
-    #         template_file: "{{ django_app_nginx_template }}"
-    #         conf_file_name: "{{ django_app_docker_name_prefix }}.conf"
-    #         conf_file_location: /etc/nginx/sites-available/
 
   post_tasks:
     - template:
         src: "{{ django_app_nginx_template }}"
         # Make sure the target folder is used by Nginx for reading host entries.
-        dest: "/etc/nginx/conf.d/{{ django_app_docker_name_prefix }}.conf"
+        dest: "/etc/nginx/sites-enabled/{{ django_app_docker_name_prefix }}.conf"
