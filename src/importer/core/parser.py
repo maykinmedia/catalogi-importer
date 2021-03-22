@@ -595,7 +595,7 @@ def parse_xml(
             try:
                 ioype_data = construct_iotype_data(session, log_scope, iotype)
                 iotypen_data.append(ioype_data)
-                session.counter.increment_counted(ObjectTypenKeys.informatieobjecttypen)
+                # note we dont count here since we de-duplicate later
             except ParserException as exc:
                 session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
                 session.log_error(
@@ -644,6 +644,11 @@ def parse_xml(
                     ObjectTypenKeys.informatieobjecttypen,
                 )
             else:
+                if omschrijving not in iotypen_dict:
+                    # we count these here for de-duplication
+                    session.counter.increment_counted(
+                        ObjectTypenKeys.informatieobjecttypen
+                    )
                 iotypen_dict[omschrijving] = iotype_data
 
     return zaaktypen_data, list(iotypen_dict.values())
