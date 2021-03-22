@@ -235,10 +235,10 @@ class JobAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         if not change:
             if obj.state == JobState.initialized:
-                precheck_job_task.delay(obj.id)
+                precheck_job_task.apply_async((obj.id,), countdown=2)
         else:
             if obj.state == JobState.queued:
-                import_job_task.delay(obj.id)
+                import_job_task.apply_async((obj.id,), countdown=2)
 
     def message_user(self, *args):
         # kill automatic messages
