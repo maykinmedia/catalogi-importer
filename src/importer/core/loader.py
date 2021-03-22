@@ -88,9 +88,8 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     update/create list of informatieobjecttypen
 
     this is messy because we need to:
-    1) backfill some fields
-    2) fetch existing resources and create lookup map to match for update/create (API can't search)
-    3) run the update/create logic on all items
+    1) fetch existing resources and create lookup map to match for update/create (API can't search)
+    2) run the update/create logic on all items
     """
     client = session.client_from_url(session.catalogus_url)
 
