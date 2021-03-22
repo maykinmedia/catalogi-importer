@@ -41,8 +41,8 @@
                 </lokale-regelgeving>
                 <lokale-regelgeving-txt ref="SCNT000048"/>
                 <vind-catalogusterm ref="SCN0000051"/>
-                <wettelijke-afdoeningstermijn ref="SCNW000052" xsi:nil="true"/>
-                <wettelijke-afdoeningstermijn-eenheid ref="SCNE000052" xsi:nil="true"/>
+                <wettelijke-afdoeningstermijn ref="SCNW000052">365</wettelijke-afdoeningstermijn>
+                <wettelijke-afdoeningstermijn-eenheid ref="SCNE000052">Dag</wettelijke-afdoeningstermijn-eenheid>
                 <wettelijke-verdagingstermijn ref="SCNW000053" xsi:nil="true"/>
                 <wettelijke-verdagingstermijn-eenheid ref="SCNE000053" xsi:nil="true"/>
                 <verdagingstermijn ref="SCNW000054" xsi:nil="true"/>
@@ -51,7 +51,7 @@
                 <signaleringstermijn-eenheid ref="SCNE000055" xsi:nil="true"/>
                 <afdoeningstermijn ref="SCNW000056">365</afdoeningstermijn>
                 <afdoeningstermijn-eenheid ref="SCNE000056">Dag</afdoeningstermijn-eenheid>
-                <beroep-mogelijk ref="SCN0000057">Ja</beroep-mogelijk>
+                <beroep-mogelijk ref="SCN0000057">Nee</beroep-mogelijk>
                 <aanhouden-mogelijk ref="SCN0000058">Nee</aanhouden-mogelijk>
                 <betaling-nodig ref="SCN0000059">Nee</betaling-nodig>
                 <wkpb ref="SCN0000060"/>

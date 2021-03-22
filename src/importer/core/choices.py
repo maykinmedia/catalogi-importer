@@ -4,10 +4,14 @@ from djchoices import ChoiceItem, DjangoChoices
 
 
 class JobState(DjangoChoices):
+    initialized = ChoiceItem("initialized", _("Initialized"))
+    checking = ChoiceItem("checking", _("Checking"))
     precheck = ChoiceItem("precheck", _("Precheck"))
+
     queued = ChoiceItem("queued", _("Queued"))
     running = ChoiceItem("running", _("Running"))
     completed = ChoiceItem("completed", _("Completed"))
+
     error = ChoiceItem("error", _("Error"))
 
 

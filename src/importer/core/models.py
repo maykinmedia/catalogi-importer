@@ -156,7 +156,7 @@ class Job(models.Model):
     state = models.CharField(
         _("State"),
         max_length=32,
-        default=JobState.precheck,
+        default=JobState.initialized,
         choices=JobState.choices,
         db_index=True,
     )
@@ -178,6 +178,16 @@ class Job(models.Model):
 
     def __str__(self):
         return f"{force_text(self._meta.verbose_name)}#{self.id}"
+
+    def mark_checking(self):
+        # validity is checked at higher level
+        self.state = JobState.checking
+        self.save()
+
+    def mark_precheck(self):
+        # validity is checked at higher level
+        self.state = JobState.precheck
+        self.save()
 
     def mark_running(self):
         # validity is checked at higher level

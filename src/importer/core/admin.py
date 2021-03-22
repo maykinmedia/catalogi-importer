@@ -9,14 +9,13 @@ from django.utils.translation import gettext_lazy as _
 from solo.admin import SingletonModelAdmin
 
 from importer.core.choices import JobState
-from importer.core.importer import precheck_import
 from importer.core.models import CatalogConfig, Job, SelectielijstConfig
 from importer.core.reporting import (
     transform_import_statistics,
     transform_precheck_statistics,
 )
 from importer.core.selectielijst import get_procestype_years
-from importer.core.tasks import import_job_task
+from importer.core.tasks import import_job_task, precheck_job_task
 from importer.utils.forms import StaticHiddenField
 
 
@@ -121,16 +120,6 @@ class JobAdmin(admin.ModelAdmin):
                 "start_date",
                 "close_published",
             ]
-        elif job.state == JobState.precheck:
-            return [
-                "state",
-                "catalog_fmt",
-                "year_fmt",
-                "source_fmt",
-                "start_date",
-                "close_published",
-                "created_at",
-            ]
         else:
             return [
                 "catalog_fmt",
@@ -177,7 +166,7 @@ class JobAdmin(admin.ModelAdmin):
         else:
             return fields
 
-    def get_stopped_joblogs(self, job):
+    def get_joblogs(self, job):
         return job.joblog_set.order_by("pk")
 
     def change_view(self, request, object_id, form_url="", context=None):
@@ -186,22 +175,31 @@ class JobAdmin(admin.ModelAdmin):
         context = context or {}
         context["title"] = "Job"
 
-        if job.state == JobState.precheck:
-            session = precheck_import(job)
+        if job.state == JobState.initialized:
+            context["title"] = _("Queued Precheck")
+            context["reload_time"] = 5000
 
+        elif job.state == JobState.checking:
+            context["title"] = _("Running Precheck")
+            context["reload_time"] = 2500
+            context["value_table"] = {
+                "rows": transform_precheck_statistics(job.statistics),
+            }
+        elif job.state == JobState.precheck:
             context["title"] = _("Precheck")
             context["value_table"] = {
-                "rows": transform_precheck_statistics(session.counter.get_data()),
+                "rows": transform_precheck_statistics(job.statistics),
             }
             context["joblog_table"] = {
-                "show_timestamp": False,
-                "rows": session.logs,
+                "rows": self.get_joblogs(job),
             }
         elif job.state == JobState.queued:
-            context["title"] = _("Queued Job")
+            context["title"] = _("Queued Import")
+            context["reload_time"] = 2500
 
         elif job.state == JobState.running:
             context["title"] = _("Running..")
+            context["reload_time"] = 5000
             context["value_table"] = {
                 "rows": transform_import_statistics(job.statistics),
             }
@@ -212,8 +210,7 @@ class JobAdmin(admin.ModelAdmin):
                 "rows": transform_import_statistics(job.statistics),
             }
             context["joblog_table"] = {
-                # "show_timestamp": True,
-                "rows": self.get_stopped_joblogs(job),
+                "rows": self.get_joblogs(job),
             }
         elif job.state == JobState.error:
             context["title"] = _("Import Error")
@@ -223,7 +220,7 @@ class JobAdmin(admin.ModelAdmin):
             }
             context["joblog_table"] = {
                 "show_timestamp": True,
-                "rows": self.get_stopped_joblogs(job),
+                "rows": self.get_joblogs(job),
             }
 
         return super().change_view(request, object_id, form_url, extra_context=context)
@@ -236,8 +233,12 @@ class JobAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        if change and obj.state == JobState.queued:
-            import_job_task.delay(obj.id)
+        if not change:
+            if obj.state == JobState.initialized:
+                precheck_job_task.delay(obj.id)
+        else:
+            if obj.state == JobState.queued:
+                import_job_task.delay(obj.id)
 
     def message_user(self, *args):
         # kill automatic messages

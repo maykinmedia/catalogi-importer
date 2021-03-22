@@ -24,21 +24,44 @@ class JobTests(TestCase):
 
     def test_state_change(self):
         job = JobFactory()
+        self.assertEqual(job.state, JobState.initialized)
+        self.assertIsNotNone(job.created_at)
+        self.assertIsNone(job.started_at)
+        self.assertIsNone(job.stopped_at)
+
+        job.mark_checking()
+        job.refresh_from_db()
+        self.assertEqual(job.state, JobState.checking)
+        self.assertIsNotNone(job.created_at)
+        self.assertIsNone(job.started_at)
+        self.assertIsNone(job.stopped_at)
+
+        job.mark_precheck()
+        job.refresh_from_db()
         self.assertEqual(job.state, JobState.precheck)
         self.assertIsNotNone(job.created_at)
         self.assertIsNone(job.started_at)
+        self.assertIsNone(job.stopped_at)
+
+        job.mark_running()
+        job.refresh_from_db()
+        self.assertEqual(job.state, JobState.running)
+        self.assertIsNotNone(job.created_at)
+        self.assertIsNotNone(job.started_at)
         self.assertIsNone(job.stopped_at)
 
         job.state = JobState.queued
         job.save()
 
         job.mark_running()
+        job.refresh_from_db()
         self.assertEqual(job.state, JobState.running)
         self.assertIsNotNone(job.created_at)
         self.assertIsNotNone(job.started_at)
         self.assertIsNone(job.stopped_at)
 
         job.mark_completed()
+        job.refresh_from_db()
         self.assertEqual(job.state, JobState.completed)
         self.assertIsNotNone(job.created_at)
         self.assertIsNotNone(job.started_at)
@@ -47,6 +70,7 @@ class JobTests(TestCase):
         job = JobFactory()
         job.mark_running()
         job.mark_error()
+        job.refresh_from_db()
         self.assertEqual(job.state, JobState.error)
         self.assertIsNotNone(job.created_at)
         self.assertIsNotNone(job.started_at)

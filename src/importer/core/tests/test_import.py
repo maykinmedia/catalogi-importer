@@ -8,12 +8,11 @@ from freezegun import freeze_time
 from zgw_consumers.constants import APITypes
 
 from importer.core.choices import JobState
-from importer.core.importer import run_import
 from importer.core.tasks import import_job_task
 from importer.core.tests.base import MockMatcherCheck, TestCaseMixin
 from importer.core.tests.factories import (
     CatalogConfigFactory,
-    QueuedJobFactory,
+    JobFactory,
     ZGWServiceFactory,
 )
 
@@ -205,7 +204,7 @@ class ImportTest(TestCaseMixin, TestCase):
             "http://test/api/catalogussen/7c0e6595-adbe-45b4-b092-31ba75c7dd74",
         )
 
-        job = QueuedJobFactory(catalog=catalog)
+        job = JobFactory(state=JobState.queued, catalog=catalog)
         job.source.save("foo.xml", ContentFile(self.get_test_data(xml_file)))
         return job
 
