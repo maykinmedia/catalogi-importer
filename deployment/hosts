@@ -1,2 +1,2 @@
 [catalogi_importer]
-localhost ansible_connection=local ansible_python_interpreter=./env/bin/python target=example
+localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3
