@@ -54,9 +54,19 @@ def get_procestype_year_choices():
     return [(str(y), str(y)) for y in get_procestype_years()]
 
 
+def get_procestype_year_default():
+    try:
+        return max(get_procestype_years())
+    except ValueError:
+        return ""
+
+
 class JobForm(forms.ModelForm):
     year = forms.TypedChoiceField(
-        localize=False, coerce=int, choices=get_procestype_year_choices
+        localize=False,
+        coerce=int,
+        choices=get_procestype_year_choices,
+        initial=get_procestype_year_default,
     )
 
     class Meta:
