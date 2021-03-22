@@ -110,7 +110,7 @@ django-relativedelta==1.1.2
     #   zgw-consumers
 django-rosetta==0.9.5
     # via -r requirements/ci.txt
-django-sendfile==0.3.11
+django-sendfile2==0.6.0
     # via -r requirements/ci.txt
 django-sniplates==0.7.0
     # via -r requirements/ci.txt
@@ -130,7 +130,7 @@ django==2.2.17
     #   django-redis
     #   django-relativedelta
     #   django-rosetta
-    #   django-sendfile
+    #   django-sendfile2
     #   django-sniplates
     #   zgw-consumers
 docutils==0.16

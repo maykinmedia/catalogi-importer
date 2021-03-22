@@ -1,52 +1,47 @@
-.. _installation_quickstart:
+.. _quickstart:
 
-Quickstart
-==========
+=======================
+Quickstart installation
+=======================
 
-A simple ``docker-compose-quickstart.yml`` file is available to get the API's
-up and running in minutes. This file has some convenience settings to get
-started quickly and these should never be used for anything besides testing:
+A ``docker-compose-quickstart.yml`` file is available to get the app up and running in minutes.
+It contains 'convenience' settings, which means that no additional configuration is needed to run the app. Therefore,
+it should *not* be used for anything else than testing. For example, it includes:
 
-* A default secret is set in the ``SECRET_KEY`` environment variable
-* A predefined database and database account is used.
-* API authorizations are disabled.
+* A default ``SECRET_KEY`` environment variable
+* A predefined database with the environment variable ``POSTGRES_HOST_AUTH_METHOD=trust``. This lets us connect to the database without using a password.
+* Debug mode is enabled.
 
-With the above remarks in mind, let's go:
+Getting started with Docker
+---------------------------
 
-1. Create a project folder:
-
-   .. code:: shell
-
-      $ mkdir catalogi-importer
-      $ cd catalogi-importer
-
-2. Download the ``docker-compose`` file:
+1. Download the ``docker-compose`` file:
 
    .. tabs::
 
-      .. tab:: Linux
+      .. group-tab:: Linux
 
          .. code:: shell
 
-            $  wget https://raw.githubusercontent.com/maykinmedia/catalogi-importer/master/docker-compose-quickstart.yml -O docker-compose-qs.yml
+            $ wget https://raw.githubusercontent.com/maykinmedia/catalogi-importer/master/docker-compose-quickstart.yml -O docker-compose.yml
 
-      .. tab:: Windows Powershell 3
+      .. group-tab:: Windows (Powershell 3)
 
          .. code:: shell
 
-            PS> wget https://raw.githubusercontent.com/maykinmedia/catalogi-importer/master/docker-compose-quickstart.yml -O docker-compose-qs.yml
+            PS> wget https://raw.githubusercontent.com/maykinmedia/catalogi-importer/master/docker-compose-quickstart.yml -Odocker-compose.yml
 
-3. Start the Docker containers:
+2. Start the docker containers with ``docker-compose``. If you want to run the containers in the background, add the ``-d`` flag to the command below.
 
-   .. code:: shell
+    .. code:: shell
 
-      $ docker-compose -f docker-compose-qs.yml up -d
+        $ docker-compose up
 
-4. Import a demo set of demo data:
+3. Create a super-user.
 
-   .. code:: shell
+    .. code:: shell
 
-      $ docker-compose exec web src/manage.py loaddata demodata
+        $ docker-compose exec web src/manage.py createsuperuser
 
-
-TODO: Superusre, Auth, fixtures, objects...
+4. Navigate to ``http://127.0.0.1:8000`` and use the credentials created above
+   to log in.

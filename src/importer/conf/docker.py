@@ -64,6 +64,11 @@ if subpath:
 # Additional Django settings
 #
 
+# Ensure we don't use filesystem loggers
+for logger in LOGGING["loggers"].values():
+    logger["handlers"] = ["console"]
+
+
 # Disable security measures for development
 SESSION_COOKIE_SECURE = getenv("SESSION_COOKIE_SECURE", False)
 SESSION_COOKIE_HTTPONLY = getenv("SESSION_COOKIE_HTTPONLY", False)

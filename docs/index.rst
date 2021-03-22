@@ -27,7 +27,7 @@ To get you started, you might find some of these links relevant:
 
 * New to the application? Have a look at the :ref:`introduction_index`
 * Wondering how to use this application? Follow our :ref:`Usage manual <usage_index>`
-* Want to get started now? Follow the :ref:`installation_quickstart`
+* Want to get started now? Follow the :ref:`quickstart`
 
 
 Index
