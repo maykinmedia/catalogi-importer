@@ -1,4 +1,5 @@
 from datetime import date
+from json import JSONDecodeError
 from urllib.parse import urljoin
 
 from django.contrib.postgres.fields import JSONField
@@ -96,7 +97,7 @@ class CatalogConfig(models.Model):
             )
             url = urljoin(client.base_url, path)
             catalog = client.retrieve("catalogus", url=url)
-        except (HTTPError, ConnectionError):
+        except (HTTPError, ConnectionError, JSONDecodeError):
             raise ValidationError(
                 _("Cannot verify Catalog: check the Service is configured correctly"),
                 code="invalid",
