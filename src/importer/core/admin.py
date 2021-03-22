@@ -176,17 +176,17 @@ class JobAdmin(admin.ModelAdmin):
         context["title"] = "Job"
 
         if job.state == JobState.initialized:
-            context["title"] = _("Queued Precheck")
+            context["title"] = _("Waiting for precheck to start..")
             context["reload_time"] = 5000
 
         elif job.state == JobState.checking:
-            context["title"] = _("Running Precheck")
+            context["title"] = _("Running precheck..")
             context["reload_time"] = 2500
             context["value_table"] = {
                 "rows": transform_precheck_statistics(job.statistics),
             }
         elif job.state == JobState.precheck:
-            context["title"] = _("Precheck")
+            context["title"] = _("Precheck completed")
             context["value_table"] = {
                 "rows": transform_precheck_statistics(job.statistics),
             }
@@ -194,11 +194,11 @@ class JobAdmin(admin.ModelAdmin):
                 "rows": self.get_joblogs(job),
             }
         elif job.state == JobState.queued:
-            context["title"] = _("Queued Import")
+            context["title"] = _("Waiting for import to start..")
             context["reload_time"] = 2500
 
         elif job.state == JobState.running:
-            context["title"] = _("Running..")
+            context["title"] = _("Running import..")
             context["reload_time"] = 5000
             context["value_table"] = {
                 "rows": transform_import_statistics(job.statistics),
