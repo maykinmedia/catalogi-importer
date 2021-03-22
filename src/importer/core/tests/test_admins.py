@@ -120,7 +120,7 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(self.reverse_change_url(job))
         link = response.pyquery(".form-row.field-source_fmt div.readonly a")[0]
         url = link.attrib["href"]
-        self.assertIn("/private_files/", url)
+        self.assertIn("/private_media/", url)
         response = self.app.get(url, status=200)
         self.assertEqual(response.body, xml_data)
 

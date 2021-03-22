@@ -196,11 +196,11 @@ MEDIA_URL = "/media/"
 FILE_UPLOAD_PERMISSIONS = 0o644
 
 PRIVATE_MEDIA_ROOT = os.path.join(BASE_DIR, "private_media")
-PRIVATE_MEDIA_URL = "/private_files"
+PRIVATE_MEDIA_URL = "/private_media/"  # our protected view in urls.py
 
-SENDFILE_BACKEND = "sendfile.backends.nginx"
+SENDFILE_BACKEND = "django_sendfile.backends.nginx"
 SENDFILE_ROOT = PRIVATE_MEDIA_ROOT
-SENDFILE_URL = "/private_media"
+SENDFILE_URL = "/private_media_serve/"  # nginx internal location in nginx conf
 
 FIXTURE_DIRS = (os.path.join(DJANGO_PROJECT_DIR, "fixtures"),)
 

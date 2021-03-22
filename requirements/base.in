@@ -16,7 +16,7 @@ django-redis
 django-rosetta
 django-sniplates
 django-solo
-django-sendfile
+django-sendfile2
 
 # Core libraries
 lxml

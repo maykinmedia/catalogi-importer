@@ -3,7 +3,7 @@ import logging
 from django.core.exceptions import PermissionDenied
 from django.views import View
 
-from sendfile import sendfile
+from django_sendfile import sendfile
 
 from importer.utils.storage import private_storage
 

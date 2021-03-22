@@ -38,7 +38,7 @@ urlpatterns = [
         name="password_reset_complete",
     ),
     re_path(
-        r"^private_files/(?P<path>.*)$",
+        r"^private_media/(?P<path>.*)$",
         StaffPrivateFileView.as_view(),
         name="staff_private_file",
     ),
