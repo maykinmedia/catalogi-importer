@@ -35,9 +35,11 @@
       - name: "{{ django_app_docker_name_prefix }}-media"
         mount: "/app/media"
         mode: "rw"
+        owner: 1000
       - name: "{{ django_app_docker_name_prefix }}-private_media"
         mount: "/app/private_media"
         mode: "rw"
+        owner: 1000
 
     # Uncomment if you enable the PostgreSQL role.
     #
@@ -103,8 +105,11 @@
     #         conf_file_name: "{{ django_app_docker_name_prefix }}.conf"
     #         conf_file_location: /etc/nginx/sites-available/
 
+  # Comment out if you use the Nginx role.
   post_tasks:
     - template:
         src: "{{ django_app_nginx_template }}"
         # Make sure the target folder is used by Nginx for reading host entries.
         dest: "/etc/nginx/sites-enabled/{{ django_app_docker_name_prefix }}.conf"
+    - name: Restart nginx
+      service: name=nginx state=restarted
