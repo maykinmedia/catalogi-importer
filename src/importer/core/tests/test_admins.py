@@ -140,7 +140,7 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowNotExists(response, "started_at")
         self.assertFormRowNotExists(response, "stopped_at")
 
-        self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryExists(response, ".value-display-table tr td")
         self.assertPyQueryExists(response, ".joblog-display-table")
 
     def test_change_queued(self):
@@ -182,7 +182,7 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at", "-")
 
-        self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryExists(response, ".value-display-table tr td")
         self.assertPyQueryNotExists(response, ".joblog-display-table")
 
     def test_change_completed(self):
@@ -204,7 +204,7 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at")
 
-        self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryExists(response, ".value-display-table tr td")
         self.assertPyQueryExists(response, ".joblog-display-table")
 
     def test_change_error(self):
@@ -226,5 +226,5 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "started_at")
         self.assertFormRowReadonly(response, "stopped_at")
 
-        self.assertPyQueryExists(response, ".value-display-table .form-row")
+        self.assertPyQueryExists(response, ".value-display-table tr td")
         self.assertPyQueryExists(response, ".joblog-display-table")

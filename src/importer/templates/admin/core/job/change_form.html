@@ -6,16 +6,16 @@
     {% if value_table %}
         <div class="value-display">
         {% if value_table.title %}<h1>{{ value_table.title }}</h1>{% endif %}
-        <fieldset class="module aligned value-display-table">
-        {% for label, value in value_table.rows %}
-            <div class="form-row">
-                <div>
-                    <label>{{ label }}</label>
-                    <div class="readonly">{{ value }}</div>
-                </div>
-            </div>
+
+        <table class="module aligned value-display-table">
+        {% for row in value_table.rows %}
+            <tr>
+            {% for value in row %}
+                <td>{{ value }}</td>
+            {% endfor %}
+            </tr>
         {% endfor %}
-        </fieldset>
+        </table>
         </div>
     {% endif %}
 {% endblock %}

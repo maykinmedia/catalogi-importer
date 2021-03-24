@@ -141,26 +141,26 @@ class ResportingUtilsTest(TestCase):
             },
         }
         expected = [
-            ("", "errored, counted"),
-            (_("Roltypen"), "0 / 0"),
-            (_("Zaaktypen"), "0 / 0"),
-            (_("Statustypen"), "0 / 0"),
-            (_("Resultaattypen"), "5 / 35 (2 warnings, 1 errors)"),
-            (_("Informatieobjecttypen"), "0 / 0"),
-            (_("Zaakinformatieobjecttypen"), "0 / 0"),
+            ["", "errored", "counted", ""],
+            [_("Roltypen"), 0, 0, ""],
+            [_("Zaaktypen"), 0, 0, ""],
+            [_("Statustypen"), 0, 0, ""],
+            [_("Resultaattypen"), 5, 35, "(2 warnings, 1 errors)"],
+            [_("Informatieobjecttypen"), 0, 0, ""],
+            [_("Zaakinformatieobjecttypen"), 0, 0, ""],
         ]
         actual = transform_precheck_statistics(data)
         self.assertEqual(actual, expected)
 
     def test_transform_precheck_statistics_empty(self):
         expected = [
-            ("", "errored, counted"),
-            (_("Roltypen"), "0 / 0"),
-            (_("Zaaktypen"), "0 / 0"),
-            (_("Statustypen"), "0 / 0"),
-            (_("Resultaattypen"), "0 / 0"),
-            (_("Informatieobjecttypen"), "0 / 0"),
-            (_("Zaakinformatieobjecttypen"), "0 / 0"),
+            ["", "errored", "counted", ""],
+            [_("Roltypen"), 0, 0, ""],
+            [_("Zaaktypen"), 0, 0, ""],
+            [_("Statustypen"), 0, 0, ""],
+            [_("Resultaattypen"), 0, 0, ""],
+            [_("Informatieobjecttypen"), 0, 0, ""],
+            [_("Zaakinformatieobjecttypen"), 0, 0, ""],
         ]
         actual = transform_precheck_statistics({})
         self.assertEqual(actual, expected)
@@ -180,26 +180,26 @@ class ResportingUtilsTest(TestCase):
             },
         }
         expected = [
-            ("", "updated, created, errored of total"),
-            (_("Roltypen"), "0 / 0 / 0 of 0"),
-            (_("Zaaktypen"), "0 / 0 / 0 of 0"),
-            (_("Statustypen"), "0 / 0 / 0 of 0"),
-            (_("Resultaattypen"), "20 / 10 / 5 of 35 (2 warnings, 1 errors)"),
-            (_("Informatieobjecttypen"), "0 / 0 / 0 of 0"),
-            (_("Zaakinformatieobjecttypen"), "0 / 0 / 0 of 0"),
+            ["", "updated", "created", "errored", "total", ""],
+            [_("Roltypen"), 0, 0, 0, 0, ""],
+            [_("Zaaktypen"), 0, 0, 0, 0, ""],
+            [_("Statustypen"), 0, 0, 0, 0, ""],
+            [_("Resultaattypen"), 20, 10, 5, 35, "(2 warnings, 1 errors)"],
+            [_("Informatieobjecttypen"), 0, 0, 0, 0, ""],
+            [_("Zaakinformatieobjecttypen"), 0, 0, 0, 0, ""],
         ]
         actual = transform_import_statistics(data)
         self.assertEqual(actual, expected)
 
     def test_transform_import_statistics_empty(self):
         expected = [
-            ("", "updated, created, errored of total"),
-            (_("Roltypen"), "0 / 0 / 0 of 0"),
-            (_("Zaaktypen"), "0 / 0 / 0 of 0"),
-            (_("Statustypen"), "0 / 0 / 0 of 0"),
-            (_("Resultaattypen"), "0 / 0 / 0 of 0"),
-            (_("Informatieobjecttypen"), "0 / 0 / 0 of 0"),
-            (_("Zaakinformatieobjecttypen"), "0 / 0 / 0 of 0"),
+            ["", "updated", "created", "errored", "total", ""],
+            [_("Roltypen"), 0, 0, 0, 0, ""],
+            [_("Zaaktypen"), 0, 0, 0, 0, ""],
+            [_("Statustypen"), 0, 0, 0, 0, ""],
+            [_("Resultaattypen"), 0, 0, 0, 0, ""],
+            [_("Informatieobjecttypen"), 0, 0, 0, 0, ""],
+            [_("Zaakinformatieobjecttypen"), 0, 0, 0, 0, ""],
         ]
         actual = transform_import_statistics({})
         self.assertEqual(actual, expected)

@@ -136,13 +136,13 @@ class TypeCounter:
 
 def transform_precheck_statistics(raw_data):
     """
-    Transform a dictionary with progress/result statistics into key/value rows for display
+    Transform a dictionary with progress/result statistics into table rows for display
 
     Output something like:
 
     [
-        ("Roltypen": "1 / 2"),
-        ("Zaaktypen": "2 / 5 (4 warnings, 2 errors)"),
+        ["Roltypen", 0, 1, ""),
+        ["Zaaktypen", 2, 5, "(4 warnings, 2 errors)"),
         ...
     ]
     """
@@ -151,15 +151,19 @@ def transform_precheck_statistics(raw_data):
         raw_data = dict()
     data = raw_data.get("data", dict())
 
-    rows = [("", "errored, counted")]
+    rows = [["", "errored", "counted", ""]]
     for key in ObjectTypenKeys.values:
         label = ObjectTypenKeys.values[key]
         value = data[key] if key in data else dict()
 
         info_fmt = _format_logstats_dict(value.get("issues"))
-        stat_fmt = f"{value.get('errored', 0)} / {value.get('counted', 0)}{info_fmt}"
-
-        rows.append((label, stat_fmt))
+        row = [
+            label,
+            value.get("errored", 0),
+            value.get("counted", 0),
+            info_fmt,
+        ]
+        rows.append(row)
 
     return rows
 
@@ -174,15 +178,21 @@ def transform_import_statistics(raw_data):
         raw_data = dict()
     data = raw_data.get("data", dict())
 
-    rows = [("", "updated, created, errored of total")]
+    rows = [["", "updated", "created", "errored", "total", ""]]
     for key in ObjectTypenKeys.values:
         label = ObjectTypenKeys.values[key]
         value = data[key] if key in data else dict()
 
         info_fmt = _format_logstats_dict(value.get("issues"))
-        stat_fmt = f"{value.get('updated', 0)} / {value.get('created', 0)} / {value.get('errored', 0)} of {value.get('counted', 0)}{info_fmt}"
-
-        rows.append((label, stat_fmt))
+        row = [
+            label,
+            value.get("updated", 0),
+            value.get("created", 0),
+            value.get("errored", 0),
+            value.get("counted", 0),
+            info_fmt,
+        ]
+        rows.append(row)
 
     return rows
 
@@ -198,7 +208,7 @@ def _format_logstats_dict(info):
 
     Output:
 
-    (10 warnings, 2 errors)
+    "(10 warnings, 2 errors)"
 
     """
     if not info:
@@ -210,7 +220,7 @@ def _format_logstats_dict(info):
             parts.append(f"{info[level]} {JobLogLevel.labels[level].lower()}s")
 
     if parts:
-        return f" ({', '.join(parts)})"
+        return f"({', '.join(parts)})"
     else:
         return ""
 
