@@ -36,7 +36,7 @@ jobs:
           node-version: '12'
 
       - name: Install dependencies
-        run: pip install -r requirements/dev.txt codecov
+        run: pip install -r requirements/ci.txt codecov
       - name: Build frontend
         run: |
           npm ci
@@ -47,7 +47,7 @@ jobs:
           python src/manage.py collectstatic --noinput --link
           coverage run src/manage.py test src
         env:
-          DJANGO_SETTINGS_MODULE: importer.conf.dev
+          DJANGO_SETTINGS_MODULE: importer.conf.ci
           SECRET_KEY: dummy
           DB_USER: postgres
           DB_PASSWORD: ''
