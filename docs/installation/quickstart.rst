@@ -43,5 +43,5 @@ Getting started with Docker
 
         $ docker-compose exec web src/manage.py createsuperuser
 
-4. Navigate to ``http://127.0.0.1:8000`` and use the credentials created above 
+4. Navigate to ``http://127.0.0.1:8000`` and use the credentials created above
    to log in.

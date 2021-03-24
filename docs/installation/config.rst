@@ -44,6 +44,11 @@ Database settings
 
 * ``DB_PORT``: Port number of the database. Defaults to ``5432``.
 
+* ``CELERY_BROKER_URL``: URL for the Redis task broker for Celery. Defaults to ``redis://127.0.0.1:6379/1``.
+
+* ``CELERY_RESULT_BACKEND``: URL for the Redis result broker for Celery. Defaults to ``redis://127.0.0.1:6379/1``.
+
+
 Other settings
 --------------
 

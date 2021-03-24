@@ -1,3 +1,27 @@
 [
-
+    {
+        "model": "zgw_consumers.service",
+        "pk": 1,
+        "fields": {
+            "label": "Selectielijst",
+            "api_type": "orc",
+            "api_root": "https://selectielijst.openzaak.nl/api/v1/",
+            "client_id": "",
+            "secret": "",
+            "auth_type": "no_auth",
+            "header_key": "",
+            "header_value": "",
+            "oas": "https://selectielijst.openzaak.nl/api/v1/schema/openapi.yaml",
+            "nlx": "",
+            "user_id": "",
+            "user_representation": ""
+        }
+    },
+    {
+        "model": "core.selectielijstconfig",
+        "pk": 1,
+        "fields": {
+            "service": 1
+        }
+    }
 ]
