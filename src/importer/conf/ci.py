@@ -16,6 +16,8 @@ CACHES = {
     "sessions": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
 }
 
+SENDFILE_BACKEND = "django_sendfile.backends.development"
+
 LOGGING = None  # Quiet is nice
 logging.disable(logging.CRITICAL)
 
