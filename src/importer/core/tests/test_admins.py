@@ -111,6 +111,13 @@ class JobAdminViewTest(AdminWebTest):
         # verify we use Save & Continue to return to change page
         self.assertRedirects(response, self.reverse_change_url(job))
 
+    def test_add_view_without_selectielijst(self):
+        config = SelectielijstConfig.get_solo()
+        config.service = None
+        config.save()
+        response = self.app.get(self.reverse_add_url(Job))
+        self.assertRedirects(response, self.reverse_change_url(config))
+
     def test_source_link(self):
         xml_data = self.get_test_data("minimal.xml")
         job = CompletedJobFactory()

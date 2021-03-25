@@ -1,7 +1,8 @@
 import os
 
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
@@ -168,6 +169,22 @@ class JobAdmin(admin.ModelAdmin):
 
     def get_joblogs(self, job):
         return job.joblog_set.order_by("pk")
+
+    def add_view(self, request, form_url="", extra_context=None):
+        config = SelectielijstConfig.get_solo()
+        if not config.service:
+            # note: use the messages function directly because we disabled messages in this admin
+            messages.warning(request, _("A Selectielijst Service must be configured"))
+            return redirect(
+                reverse(
+                    "admin:{}_{}_change".format(
+                        config._meta.app_label, config._meta.model_name
+                    ),
+                    args=[config.pk],
+                )
+            )
+        else:
+            return super().add_view(request, form_url, extra_context)
 
     def change_view(self, request, object_id, form_url="", context=None):
         job = Job.objects.get(id=object_id)
