@@ -10,13 +10,21 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("job_id", type=int)
-        parser.add_argument("--run", action="store_true", default=False)
+        parser.add_argument("--queue", action="store_true", default=False)
 
     def handle(self, **options):
         job_id = options["job_id"]
-        if options["run"]:
+        try:
             job = Job.objects.get(id=job_id)
+        except Job.DoesNotExist:
+            self.stdout.print(f"Job {job_id} not found")
+            exit(1)
+        else:
             job.joblog_set.all().delete()
             job.state = JobState.queued
             job.save()
-        import_job_task(job_id)
+
+            if options["queue"]:
+                import_job_task.delay(job_id)
+            else:
+                import_job_task(job_id)

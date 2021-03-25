@@ -277,14 +277,16 @@ def construct_zaaktype_data(
             find(fields, "afdoeningstermijn-eenheid"),
         )
         session.log_warning(
-            f'{log_scope} Used "afdoeningstermijn" ({doorlooptijd}) for "Zaaktype.doorlooptijd": Import has no value for "wettelijke-afdoeningstermijn".'
+            f'{log_scope} Used "afdoeningstermijn" ({doorlooptijd}) for "Zaaktype.doorlooptijd": Import has no value for "wettelijke-afdoeningstermijn".',
+            ObjectTypenKeys.zaaktypen,
         )
 
     # FIXME cam't be set without verlengingstermijn field
     verlengingMogelijk = get_boolean(find(fields, "beroep-mogelijk"))
     if verlengingMogelijk:
         session.log_error(
-            f'{log_scope} Cannot set "Zaaktype.verlengingMogelijk" to True: Import indicated "beroep-mogelijk" is True but Open Zaak requires "Zaaktype.verlengingstermijn" to be filled when "Zaaktype.verlengingMogelijk" is True.'
+            f'{log_scope} Cannot set "Zaaktype.verlengingMogelijk" to True: Import indicated "beroep-mogelijk" is True but Open Zaak requires "Zaaktype.verlengingstermijn" to be filled when "Zaaktype.verlengingMogelijk" is True.',
+            ObjectTypenKeys.zaaktypen,
         )
         # set to false to complete
         verlengingMogelijk = False
@@ -593,7 +595,7 @@ def parse_xml(
             try:
                 ioype_data = construct_iotype_data(session, log_scope, iotype)
                 iotypen_data.append(ioype_data)
-                session.counter.increment_counted(ObjectTypenKeys.informatieobjecttypen)
+                # note we dont count here since we de-duplicate later
             except ParserException as exc:
                 session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
                 session.log_error(
@@ -642,6 +644,11 @@ def parse_xml(
                     ObjectTypenKeys.informatieobjecttypen,
                 )
             else:
+                if omschrijving not in iotypen_dict:
+                    # we count these here for de-duplication
+                    session.counter.increment_counted(
+                        ObjectTypenKeys.informatieobjecttypen
+                    )
                 iotypen_dict[omschrijving] = iotype_data
 
     return zaaktypen_data, list(iotypen_dict.values())

@@ -58,16 +58,16 @@ def precheck_import(job):
     """
     session = ImportSession(job)
     if not check_job(job, session):
-        return session
+        raise ImporterException("failed data check")
 
     try:
         tree = etree.fromstring(job.source.read())
     except LxmlError:
         session.log_error("XML parse error.")
-        return session
+        raise ImporterException("XML parse error.")
 
     if not check_xml(tree, session):
-        return session
+        raise ImporterException("failed XML check")
 
     zaaktypen, iotypen = parse_xml(session, tree, job.year)
 
@@ -86,9 +86,11 @@ def run_import(job):
     """
     run the actual import for a job and write additional information in the database through the session
     """
-    session = ImportSession(job, save_logs=True)
+    session = ImportSession(job)
+    job.joblog_set.all().delete()
+
     if not check_job(job, session):
-        raise ImporterException("failed precheck")
+        raise ImporterException("failed data check")
 
     try:
         tree = etree.fromstring(job.source.read())

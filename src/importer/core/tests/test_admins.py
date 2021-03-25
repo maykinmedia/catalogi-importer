@@ -15,7 +15,6 @@ from importer.core.tests.factories import (
     ErrorJobFactory,
     JobFactory,
     JobLogFactory,
-    QueuedJobFactory,
     RunningJobFactory,
     ZGWServiceFactory,
 )
@@ -106,7 +105,7 @@ class JobAdminViewTest(AdminWebTest):
         self.assertEqual(job.catalog, catalog)
         self.assertEqual(job.start_date, date(2020, 2, 28))
         self.assertEqual(job.close_published, True)
-        self.assertEqual(job.state, JobState.precheck)
+        self.assertEqual(job.state, JobState.initialized)
         self.assertEqual(job.source.read(), xml_data)
 
         # verify we use Save & Continue to return to change page
@@ -124,8 +123,21 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(url, status=200)
         self.assertEqual(response.body, xml_data)
 
-    def test_change_precheck(self):
+    def test_change_initialized(self):
         job = JobFactory()
+        job.source.save("foo.xml", ContentFile(self.get_test_data("example.xml")))
+        response = self.app.get(self.reverse_change_url(job))
+
+        # readonly mode
+        self.assertFormHasNoFields(response)
+        self.assertSubmitButtonNotExists(response)
+
+        self.assertPyQueryNotExists(response, ".value-display-table .form-row")
+        self.assertPyQueryNotExists(response, ".joblog-display-table")
+
+    def test_change_precheck(self):
+        job = JobFactory(state=JobState.precheck)
+        logs = [JobLogFactory(job=job) for _ in range(3)]
         job.source.save("foo.xml", ContentFile(self.get_test_data("example.xml")))
         response = self.app.get(self.reverse_change_url(job))
 
@@ -137,29 +149,17 @@ class JobAdminViewTest(AdminWebTest):
         self.assertFormRowReadonly(response, "year_fmt")
         self.assertFormRowReadonly(response, "source_fmt")
         self.assertFormRowReadonly(response, "created_at")
-        self.assertFormRowNotExists(response, "started_at")
-        self.assertFormRowNotExists(response, "stopped_at")
 
         self.assertPyQueryExists(response, ".value-display-table tr td")
         self.assertPyQueryExists(response, ".joblog-display-table")
 
     def test_change_queued(self):
-        job = QueuedJobFactory()
+        job = JobFactory(state=JobState.queued)
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
         self.assertFormHasNoFields(response)
         self.assertSubmitButtonNotExists(response)
-
-        self.assertFormRowReadonly(response, "catalog_fmt")
-        self.assertFormRowReadonly(response, "year_fmt")
-        self.assertFormRowReadonly(response, "source_fmt")
-        self.assertFormRowReadonly(response, "state")
-        self.assertFormRowReadonly(response, "start_date")
-        self.assertFormRowReadonly(response, "close_published")
-        self.assertFormRowReadonly(response, "created_at")
-        self.assertFormRowReadonly(response, "started_at", "-")
-        self.assertFormRowReadonly(response, "stopped_at", "-")
 
         self.assertPyQueryNotExists(response, ".value-display-table")
         self.assertPyQueryNotExists(response, ".joblog-display-table")

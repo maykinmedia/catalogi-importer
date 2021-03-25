@@ -20,10 +20,9 @@ class ImportSession:
     the log feature is a just a list of JobLog objects.
     """
 
-    def __init__(self, job, save_logs=False):
+    def __init__(self, job):
         self.job = job
         self.logs = list()
-        self.save_logs = save_logs
         self.counter = TypeCounter()
         self._clients = dict()
 
@@ -43,8 +42,7 @@ class ImportSession:
     def add_log(self, level, message):
         assert level in JobLogLevel.values
         self.logs.append(JobLog(level=level, message=message))
-        if self.save_logs:
-            self.job.add_log(level, message)
+        self.job.add_log(level, message)
 
     def log_info(self, message, type_key=None):
         self.add_log(JobLogLevel.info, message)

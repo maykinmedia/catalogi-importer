@@ -38,7 +38,7 @@ class JobFactory(factory.django.DjangoModelFactory):
     # TODO source should be a factory.FileField
     source = factory.Faker("file_name", category="text", extension="xml")
     year = 2020
-    state = JobState.precheck
+    state = JobState.initialized
 
     created_at = factory.Faker(
         "date_time_between", start_date="-1d", end_date="-1h", tzinfo=pytz.utc
@@ -48,16 +48,8 @@ class JobFactory(factory.django.DjangoModelFactory):
         model = Job
 
 
-class QueuedJobFactory(JobFactory):
-    state = JobState.queued
-
-
-class RunningJobFactory(JobFactory):
+class CheckingJobFactory(JobFactory):
     state = JobState.running
-    started_at = factory.LazyAttribute(
-        lambda obj: obj.created_at + timedelta(minutes=randint(1, 15))
-    )
-
     statistics = {
         "data": {
             ObjectTypenKeys.statustypen: {
@@ -76,6 +68,17 @@ class RunningJobFactory(JobFactory):
             },
         }
     }
+
+
+class PrecheckJobFactory(CheckingJobFactory):
+    state = JobState.precheck
+
+
+class RunningJobFactory(CheckingJobFactory):
+    state = JobState.running
+    started_at = factory.LazyAttribute(
+        lambda obj: obj.created_at + timedelta(minutes=randint(1, 15))
+    )
 
 
 class CompletedJobFactory(RunningJobFactory):

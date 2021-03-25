@@ -1,4 +1,5 @@
 from datetime import date
+from json import JSONDecodeError
 from urllib.parse import urljoin
 
 from django.contrib.postgres.fields import JSONField
@@ -96,7 +97,7 @@ class CatalogConfig(models.Model):
             )
             url = urljoin(client.base_url, path)
             catalog = client.retrieve("catalogus", url=url)
-        except (HTTPError, ConnectionError):
+        except (HTTPError, ConnectionError, JSONDecodeError):
             raise ValidationError(
                 _("Cannot verify Catalog: check the Service is configured correctly"),
                 code="invalid",
@@ -156,7 +157,7 @@ class Job(models.Model):
     state = models.CharField(
         _("State"),
         max_length=32,
-        default=JobState.precheck,
+        default=JobState.initialized,
         choices=JobState.choices,
         db_index=True,
     )
@@ -178,6 +179,16 @@ class Job(models.Model):
 
     def __str__(self):
         return f"{force_text(self._meta.verbose_name)}#{self.id}"
+
+    def mark_checking(self):
+        # validity is checked at higher level
+        self.state = JobState.checking
+        self.save()
+
+    def mark_precheck(self):
+        # validity is checked at higher level
+        self.state = JobState.precheck
+        self.save()
 
     def mark_running(self):
         # validity is checked at higher level

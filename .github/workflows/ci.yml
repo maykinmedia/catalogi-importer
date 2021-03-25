@@ -26,6 +26,17 @@ jobs:
         # needed because the postgres container does not provide a healthcheck
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
+      redis:
+        image: redis
+        # Set health checks to wait until redis has started
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -36,7 +47,7 @@ jobs:
           node-version: '12'
 
       - name: Install dependencies
-        run: pip install -r requirements/dev.txt codecov
+        run: pip install -r requirements/ci.txt codecov
       - name: Build frontend
         run: |
           npm ci
@@ -47,10 +58,13 @@ jobs:
           python src/manage.py collectstatic --noinput --link
           coverage run src/manage.py test src
         env:
-          DJANGO_SETTINGS_MODULE: importer.conf.dev
+          DJANGO_SETTINGS_MODULE: importer.conf.ci
           SECRET_KEY: dummy
           DB_USER: postgres
           DB_PASSWORD: ''
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/0
 
       - name: Publish coverage report
         uses: codecov/codecov-action@v1

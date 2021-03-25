@@ -25,11 +25,11 @@ class ImportSessionUtilsTest(TestCase):
         session.log_info("foo-info")
         session.log_warning("foo-warning")
         session.log_error("foo-error")
-        self.assertEqual(job.joblog_set.all().count(), 0)
+        self.assertEqual(job.joblog_set.all().count(), 3)
 
     def test_importsession_import_Logs(self):
         job = JobFactory()
-        session = ImportSession(job, save_logs=True)
+        session = ImportSession(job)
         session.log_info("foo-info")
         session.log_warning("foo-warning")
         session.log_error("foo-error")
@@ -74,7 +74,7 @@ class ImportSessionUtilsTest(TestCase):
 
     def test_importsession_counter_stats(self):
         job = JobFactory()
-        session = ImportSession(job, save_logs=True)
+        session = ImportSession(job)
 
         session.counter.increment_updated(ObjectTypenKeys.roltypen)
         session.counter.increment_created(ObjectTypenKeys.roltypen)
