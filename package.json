@@ -1,7 +1,7 @@
 {
   "name": "importer",
   "version": "1.0.0",
-  "description": "catalogi-importer project",
+  "description": "Catalogi Importer project",
   "main": "src/static/importer/js/importer.js",
   "directories": {
     "doc": "doc"
