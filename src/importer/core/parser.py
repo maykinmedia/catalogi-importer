@@ -116,11 +116,19 @@ def get_choice_field(
     choices: dict,
     type_key: str,
     default="",
+    extra_mapping=None,
     required=False,
 ) -> str:
     formatted_value = value.lower().replace(" ", "_")
     if formatted_value in choices:
         return formatted_value
+
+    if extra_mapping and formatted_value in extra_mapping:
+        session.log_info(
+            f"{log_scope} Value '{value}' mapped to '{extra_mapping[formatted_value]}'",
+            type_key,
+        )
+        return extra_mapping[formatted_value]
 
     if not value:
         if required:
@@ -416,6 +424,9 @@ def construct_resultaattype_data(
             Archiefnominatie.values,
             ObjectTypenKeys.resultaattypen,
             default=DEFAULT_ARCHIEFNOMINATIE,
+            extra_mapping={
+                "bewaren": Archiefnominatie.blijvend_bewaren,
+            },
         ),
         "archiefactietermijn": get_duration(
             find(fields, "bewaartermijn", False),
