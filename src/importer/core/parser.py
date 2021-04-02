@@ -154,14 +154,23 @@ def get_resultaat_number(resultaattype: etree.ElementBase) -> str:
     if resultaat_name and re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name):
         return re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name).group(1)
 
+    # fallback naar toelichting veld
     try:
         toechlichting = find(resultaattype, "velden/toelichting", False)
     except AttributeError:
         toechlichting = None
 
-    # fallback naar toelichting veld
     if toechlichting and re.match(r"(.*?), .*", toechlichting):
         return re.match(r"(.*?), .*", toechlichting).group(1)
+
+    # fallback naar opmerking veld
+    try:
+        opmerking = find(resultaattype, "velden/opmerking", False)
+    except AttributeError:
+        opmerking = None
+
+    if opmerking and re.match(r"(\d+\.\d+\.?\d*)", opmerking):
+        return re.match(r"(\d+\.\d+\.?\d*)", opmerking).group(1)
 
     return ""
 
@@ -174,8 +183,6 @@ def get_procestype(process: etree.ElementBase, processtype_year: int) -> str:
     if not resultaat_number:
         # TODO what to do here?
         return ""
-
-    p = get_procestypen(processtype_year)
 
     procestype_number = int(resultaat_number.split(".")[0])
     procestype = [

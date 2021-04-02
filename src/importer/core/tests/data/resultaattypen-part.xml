@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<dsp xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <resultaattypen>
+        <resultaattype id="MRT0000029" volgnummer="1" soort-id="MRS0000008">
+            <!-- normal example from DSP-export 2021.03.30T21.21.36.xml -->
+            <velden>
+                <naam ref="SCN0000585">Niet verleend</naam>
+                <naam-model ref="SCN0000586">Geweigerd</naam-model>
+                <opmerking ref="SCN0000590" xsi:nil="true"/>
+                <toelichting ref="SCN0000591" xsi:nil="true"/>
+                <vernietigingsgrondslag ref="SCNX000593">
+                    <list>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.2 Selectielijst gemeenten en intergemeentelijke
+                                organen 2017
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2017.gem.html#11_2</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.2 Selectielijst gemeenten en intergemeentelijke
+                                organen 2020
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2020.gem.html#11_2</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                    </list>
+                </vernietigingsgrondslag>
+                <vernietigingsgrondslag-txt ref="SCNT000593"/>
+                <waardering ref="SCN0000594">Vernietigen</waardering>
+                <bewaartermijn ref="SCNW000595">5</bewaartermijn>
+                <bewaartermijn-eenheid ref="SCNE000595">Jaar</bewaartermijn-eenheid>
+                <bewaartermijn-start ref="SCN0000596">Afgehandeld</bewaartermijn-start>
+                <brondatum-archiefprocedure ref="SCN0000597">Afgehandeld</brondatum-archiefprocedure>
+                <toelichting-bewaartermijn ref="SCN0000598" xsi:nil="true"/>
+                <actueel-van ref="SCN0000602">2012-10-04T16:22:30</actueel-van>
+                <actueel-tot ref="SCN0000603" xsi:nil="true"/>
+                <bron ref="SCN0000609">Model</bron>
+                <laatst-gewijzigd ref="SCN0000615">2019-07-01T16:31:10</laatst-gewijzigd>
+                <actief ref="SGC0001020">Ja</actief>
+            </velden>
+            <LokaleMetaData/>
+        </resultaattype>
+
+        <resultaattype id="MRT0000029" volgnummer="12340001" soort-id="MRS0000008">
+            <!-- manually modified example from DSP-export 2021.03.30T21.21.36.xml -->
+            <velden>
+                <naam ref="SCN0000585">Niet verleend</naam>
+                <naam-model ref="SCN0000586">Geweigerd</naam-model>
+                <opmerking ref="SCN0000590" xsi:nil="true"/>
+                <toelichting ref="SCN0000591" xsi:nil="true"/>
+                <vernietigingsgrondslag ref="SCNX000593">
+                    <list>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.2 Selectielijst gemeenten en intergemeentelijke
+                                organen 2017
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2017.gem.html#11_2</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.3 Selectielijst gemeenten en intergemeentelijke
+                                organen 2020
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2020.gem.html#11_2</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                    </list>
+                </vernietigingsgrondslag>
+                <vernietigingsgrondslag-txt ref="SCNT000593"/>
+                <waardering ref="SCN0000594">Vernietigen</waardering>
+                <bewaartermijn ref="SCNW000595">5</bewaartermijn>
+                <bewaartermijn-eenheid ref="SCNE000595">Jaar</bewaartermijn-eenheid>
+                <bewaartermijn-start ref="SCN0000596">Afgehandeld</bewaartermijn-start>
+                <brondatum-archiefprocedure ref="SCN0000597">Afgehandeld</brondatum-archiefprocedure>
+                <toelichting-bewaartermijn ref="SCN0000598" xsi:nil="true"/>
+                <actueel-van ref="SCN0000602">2012-10-04T16:22:30</actueel-van>
+                <actueel-tot ref="SCN0000603" xsi:nil="true"/>
+                <bron ref="SCN0000609">Model</bron>
+                <laatst-gewijzigd ref="SCN0000615">2019-07-01T16:31:10</laatst-gewijzigd>
+                <actief ref="SGC0001020">Ja</actief>
+            </velden>
+            <LokaleMetaData/>
+        </resultaattype>
+        <resultaattype id="MRT0000029" volgnummer="12340001" soort-id="MRS0000008">
+            <!-- example from issue #77 -->
+            <velden>
+                <naam-model ref="SCN0000586">Verleend permanent</naam-model>
+                <opmerking ref="SCN0000590">Einddatum vergunning</opmerking>
+                <toelichting ref="SCN0000591">Ander datumkenmerk: na beëindiging toestemming in registratie
+                    'Vergunningen en
+                    ontheffingen'
+                </toelichting>
+                <vernietigingsgrondslag ref="SCNX000593">
+                    <list>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.1 Selectielijst gemeenten en intergemeentelijke organen
+                                2017
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2017.gem.html#11_1</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.1 Selectielijst gemeenten en intergemeentelijke organen
+                                2020
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2020.gem.html#11_1</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                    </list>
+                </vernietigingsgrondslag>
+                <vernietigingsgrondslag-txt ref="SCNT000593"/>
+                <waardering ref="SCN0000594">Vernietigen</waardering>
+                <bewaartermijn ref="SCNW000595">1</bewaartermijn>
+                <bewaartermijn-eenheid ref="SCNE000595">Jaar</bewaartermijn-eenheid>
+                <bewaartermijn-start ref="SCN0000596">Ander datumkenmerk</bewaartermijn-start>
+                <!-- stuff missing -->
+            </velden>
+            <LokaleMetaData/>
+        </resultaattype>
+        <resultaattype id="MRT0001071" volgnummer="2" soort-id="MRS0000039">
+            <!-- problem example from DSP-export 2021.03.30T21.21.36.xml -->
+            <velden>
+                <naam ref="SCN0000585">Overtreding gedoogd</naam>
+                <naam-model ref="SCN0000586">Overtreding gedoogd</naam-model>
+                <opmerking ref="SCN0000590" xsi:nil="true"/>
+                <toelichting ref="SCN0000591">Ander datumkenmerk: na beëindiging toestemming in registratie
+                    'Gedoogbeschikkingen en gedoogverklaringen'
+                </toelichting>
+                <vernietigingsgrondslag ref="SCNX000593">
+                    <list>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.1 Selectielijst gemeenten en intergemeentelijke
+                                organen 2017
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2017.gem.html#11_1</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                        <fields>
+                            <field naam="NAAM">Resultaat 11.1 Selectielijst gemeenten en intergemeentelijke
+                                organen 2020
+                            </field>
+                            <field naam="URL">https://inavigator.bizzib.nl/bsd/sl2020.gem.html#11_1</field>
+                            <field naam="TOELICHTING"/>
+                        </fields>
+                    </list>
+                </vernietigingsgrondslag>
+                <vernietigingsgrondslag-txt ref="SCNT000593"/>
+                <waardering ref="SCN0000594">Vernietigen</waardering>
+                <bewaartermijn ref="SCNW000595">1</bewaartermijn>
+                <bewaartermijn-eenheid ref="SCNE000595">Jaar</bewaartermijn-eenheid>
+                <bewaartermijn-start ref="SCN0000596">Ander datumkenmerk</bewaartermijn-start>
+                <brondatum-archiefprocedure ref="SCN0000597">Ander datumkenmerk</brondatum-archiefprocedure>
+                <toelichting-bewaartermijn ref="SCN0000598">voor zover geen verdere gevolgen. Voor gedoogde of
+                    gewijzigde situaties geldt: 1 jaar na vervallen van de situatie; B in geval van
+                    precedentwerking.
+                </toelichting-bewaartermijn>
+                <actueel-van ref="SCN0000602">2012-10-04T16:22:30</actueel-van>
+                <actueel-tot ref="SCN0000603" xsi:nil="true"/>
+                <bron ref="SCN0000609">Model</bron>
+                <laatst-gewijzigd ref="SCN0000615">2020-01-09T22:24:02</laatst-gewijzigd>
+                <actief ref="SGC0001020">Ja</actief>
+            </velden>
+            <LokaleMetaData/>
+        </resultaattype>
+    </resultaattypen>
+</dsp>
