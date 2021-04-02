@@ -276,7 +276,7 @@ def construct_zaaktype_data(
             find(fields, "afdoeningstermijn"),
             find(fields, "afdoeningstermijn-eenheid"),
         )
-        session.log_warning(
+        session.log_info(
             f'{log_scope} Used "afdoeningstermijn" ({doorlooptijd}) for "Zaaktype.doorlooptijd": Import has no value for "wettelijke-afdoeningstermijn".',
             ObjectTypenKeys.zaaktypen,
         )
