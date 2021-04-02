@@ -361,6 +361,9 @@ def construct_roltype_data(session, log_scope, roltype: etree.ElementBase) -> di
             RolOmschrijving.values,
             ObjectTypenKeys.roltypen,
             default=DEFAULT_ROL_OMSCHRIVING,
+            extra_mapping={
+                "zaakcoördinator": RolOmschrijving.zaakcoordinator,
+            },
         ),
     }
 
