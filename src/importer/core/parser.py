@@ -124,10 +124,6 @@ def get_choice_field(
         return formatted_value
 
     if extra_mapping and formatted_value in extra_mapping:
-        session.log_info(
-            f"{log_scope} Value '{value}' mapped to '{extra_mapping[formatted_value]}'",
-            type_key,
-        )
         return extra_mapping[formatted_value]
 
     if not value:
