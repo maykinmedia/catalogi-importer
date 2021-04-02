@@ -149,7 +149,7 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
-        self.assertFormHasNoFields(response, allow_fields=["state", "_continue"])
+        self.assertFormHasNoFields(response, allow_fields=["state", "_continue", None])
         self.assertSubmitButtonExists(response)
 
         self.assertFormRowReadonly(response, "catalog_fmt")
@@ -198,7 +198,7 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
-        self.assertFormHasNoFields(response)
+        self.assertFormHasNoFields(response, allow_fields=[None])
         self.assertSubmitButtonNotExists(response)
 
         self.assertFormRowReadonly(response, "catalog_fmt")
@@ -220,7 +220,7 @@ class JobAdminViewTest(AdminWebTest):
         response = self.app.get(self.reverse_change_url(job))
 
         # readonly mode
-        self.assertFormHasNoFields(response)
+        self.assertFormHasNoFields(response, allow_fields=[None])
         self.assertSubmitButtonNotExists(response)
 
         self.assertFormRowReadonly(response, "catalog_fmt")
