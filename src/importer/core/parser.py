@@ -203,10 +203,12 @@ def get_resultaattype_omschrijving(
     ]
 
     if not filtered_omschrijvingen:
-        session.log_warning(
-            f'{log_scope} Used default value for "Resultaattype.omschrijving": Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
-            ObjectTypenKeys.resultaattypen,
-        )
+        # decision by Joeri (2-4-2021, ticket #77) to silently use default 'Onbekend' and not log,
+        #   because the user data has unmatchable names and as 'resultaattypeomschrijving' is problematic in the API spec/design
+        # session.log_warning(
+        #     f'{log_scope} Used default value for "Resultaattype.omschrijving": Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
+        #     ObjectTypenKeys.resultaattypen,
+        # )
         return DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN
 
     return filtered_omschrijvingen[0]["url"]
@@ -229,7 +231,7 @@ def get_resultaat(
     ]
     if not filtered_resultaaten:
         raise ParserException(
-            f'{log_scope} Imported "resultaat" does not contain a valid resultaat number ({resultaat_number}) to match "volledigNummer" in the Selectielijst API.'
+            f'{log_scope} Imported "resultaat" does not contain a valid combination of resultaat number ({resultaat_number}) and processType ({processtype}) to match "volledigNummer" and "procesType" in the Selectielijst API.'
         )
 
     return filtered_resultaaten[0]["url"]
