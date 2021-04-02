@@ -285,15 +285,10 @@ def construct_zaaktype_data(
             ObjectTypenKeys.zaaktypen,
         )
 
-    # FIXME cam't be set without verlengingstermijn field
-    verlengingMogelijk = get_boolean(find(fields, "beroep-mogelijk"))
-    if verlengingMogelijk:
-        session.log_error(
-            f'{log_scope} Cannot set "Zaaktype.verlengingMogelijk" to True: Import indicated "beroep-mogelijk" is True but Open Zaak requires "Zaaktype.verlengingstermijn" to be filled when "Zaaktype.verlengingMogelijk" is True.',
-            ObjectTypenKeys.zaaktypen,
-        )
-        # set to false to complete
-        verlengingMogelijk = False
+    verlengings_termijn = get_duration(
+        find(fields, "wettelijke-verdagingstermijn", False),
+        find(fields, "wettelijke-verdagingstermijn-eenheid", False),
+    )
 
     return {
         "identificatie": process.get("id"),
@@ -319,8 +314,8 @@ def construct_zaaktype_data(
         "opschortingEnAanhoudingMogelijk": get_boolean(
             find(fields, "aanhouden-mogelijk", False)
         ),
-        "verlengingMogelijk": verlengingMogelijk,
-        # "verlengingstermijn": None, # FIXME no source
+        "verlengingMogelijk": bool(verlengings_termijn),
+        "verlengingstermijn": verlengings_termijn,
         "trefwoorden": get_array(
             find(fields, "lokale-trefwoorden", False)
         ),  # always empty?
