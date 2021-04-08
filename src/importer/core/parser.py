@@ -116,11 +116,15 @@ def get_choice_field(
     choices: dict,
     type_key: str,
     default="",
+    extra_mapping=None,
     required=False,
 ) -> str:
     formatted_value = value.lower().replace(" ", "_")
     if formatted_value in choices:
         return formatted_value
+
+    if extra_mapping and formatted_value in extra_mapping:
+        return extra_mapping[formatted_value]
 
     if not value:
         if required:
@@ -150,14 +154,23 @@ def get_resultaat_number(resultaattype: etree.ElementBase) -> str:
     if resultaat_name and re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name):
         return re.match(r"Resultaat (\d+\.\d+\.?\d*)", resultaat_name).group(1)
 
+    # fallback naar toelichting veld
     try:
         toechlichting = find(resultaattype, "velden/toelichting", False)
     except AttributeError:
         toechlichting = None
 
-    # fallback naar toelichting veld
     if toechlichting and re.match(r"(.*?), .*", toechlichting):
         return re.match(r"(.*?), .*", toechlichting).group(1)
+
+    # fallback naar opmerking veld
+    try:
+        opmerking = find(resultaattype, "velden/opmerking", False)
+    except AttributeError:
+        opmerking = None
+
+    if opmerking and re.match(r"(\d+\.\d+\.?\d*)", opmerking):
+        return re.match(r"(\d+\.\d+\.?\d*)", opmerking).group(1)
 
     return ""
 
@@ -170,8 +183,6 @@ def get_procestype(process: etree.ElementBase, processtype_year: int) -> str:
     if not resultaat_number:
         # TODO what to do here?
         return ""
-
-    p = get_procestypen(processtype_year)
 
     procestype_number = int(resultaat_number.split(".")[0])
     procestype = [
@@ -192,10 +203,12 @@ def get_resultaattype_omschrijving(
     ]
 
     if not filtered_omschrijvingen:
-        session.log_warning(
-            f'{log_scope} Used default value for "Resultaattype.omschrijving": Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
-            ObjectTypenKeys.resultaattypen,
-        )
+        # decision by Joeri (2-4-2021, ticket #77) to silently use default 'Onbekend' and not log,
+        #   because the user data has unmatchable names and as 'resultaattypeomschrijving' is problematic in the API spec/design
+        # session.log_warning(
+        #     f'{log_scope} Used default value for "Resultaattype.omschrijving": Import contains a "naam-model" ({omschrijving}) that is not in the Selectielijst API doesn\'t have matching resultaattypeomschrijving.',
+        #     ObjectTypenKeys.resultaattypen,
+        # )
         return DEFAULT_RESULTAATTYPE_OMSCHRIJVINGEN
 
     return filtered_omschrijvingen[0]["url"]
@@ -218,7 +231,7 @@ def get_resultaat(
     ]
     if not filtered_resultaaten:
         raise ParserException(
-            f'{log_scope} Imported "resultaat" does not contain a valid resultaat number ({resultaat_number}) to match "volledigNummer" in the Selectielijst API.'
+            f'{log_scope} Imported "resultaat" does not contain a valid combination of resultaat number ({resultaat_number}) and processType ({processtype}) to match "volledigNummer" and "procesType" in the Selectielijst API.'
         )
 
     return filtered_resultaaten[0]["url"]
@@ -276,20 +289,15 @@ def construct_zaaktype_data(
             find(fields, "afdoeningstermijn"),
             find(fields, "afdoeningstermijn-eenheid"),
         )
-        session.log_warning(
+        session.log_info(
             f'{log_scope} Used "afdoeningstermijn" ({doorlooptijd}) for "Zaaktype.doorlooptijd": Import has no value for "wettelijke-afdoeningstermijn".',
             ObjectTypenKeys.zaaktypen,
         )
 
-    # FIXME cam't be set without verlengingstermijn field
-    verlengingMogelijk = get_boolean(find(fields, "beroep-mogelijk"))
-    if verlengingMogelijk:
-        session.log_error(
-            f'{log_scope} Cannot set "Zaaktype.verlengingMogelijk" to True: Import indicated "beroep-mogelijk" is True but Open Zaak requires "Zaaktype.verlengingstermijn" to be filled when "Zaaktype.verlengingMogelijk" is True.',
-            ObjectTypenKeys.zaaktypen,
-        )
-        # set to false to complete
-        verlengingMogelijk = False
+    verlengings_termijn = get_duration(
+        find(fields, "wettelijke-verdagingstermijn", False),
+        find(fields, "wettelijke-verdagingstermijn-eenheid", False),
+    )
 
     return {
         "identificatie": process.get("id"),
@@ -315,8 +323,8 @@ def construct_zaaktype_data(
         "opschortingEnAanhoudingMogelijk": get_boolean(
             find(fields, "aanhouden-mogelijk", False)
         ),
-        "verlengingMogelijk": verlengingMogelijk,
-        # "verlengingstermijn": None, # FIXME no source
+        "verlengingMogelijk": bool(verlengings_termijn),
+        "verlengingstermijn": verlengings_termijn,
         "trefwoorden": get_array(
             find(fields, "lokale-trefwoorden", False)
         ),  # always empty?
@@ -353,6 +361,9 @@ def construct_roltype_data(session, log_scope, roltype: etree.ElementBase) -> di
             RolOmschrijving.values,
             ObjectTypenKeys.roltypen,
             default=DEFAULT_ROL_OMSCHRIVING,
+            extra_mapping={
+                "zaakcoördinator": RolOmschrijving.zaakcoordinator,
+            },
         ),
     }
 
@@ -416,6 +427,9 @@ def construct_resultaattype_data(
             Archiefnominatie.values,
             ObjectTypenKeys.resultaattypen,
             default=DEFAULT_ARCHIEFNOMINATIE,
+            extra_mapping={
+                "bewaren": Archiefnominatie.blijvend_bewaren,
+            },
         ),
         "archiefactietermijn": get_duration(
             find(fields, "bewaartermijn", False),
