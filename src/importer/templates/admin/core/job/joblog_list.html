@@ -2,10 +2,37 @@
 {% if joblog_table %}
     <div class="inline-group joblog-display">
         <div class="tabular inline-related last-related">
+            <script type="text/javascript">
+                function showLogLevel(level){
+                    var $ = django.jQuery;
+                    if (level === 'all') {
+                        $('.joblog-display-table .log-row').show()
+                    }
+                    else if (level === 'interesting') {
+                        $('.joblog-display-table .log-row').hide()
+                        $('.joblog-display-table .log-row.level-warning').show()
+                        $('.joblog-display-table .log-row.level-error').show()
+                    }
+                    else {
+                        $('.joblog-display-table .log-row').hide()
+                        $('.joblog-display-table .log-row.level-' + level).show()
+                    }
+                }
+            </script>
+
             <fieldset class="module ">
                 <h2>Job logs</h2>
 
                 {% if joblog_table.rows %}
+                    <div style="padding: 10px;">
+                        Filter logs:
+                        <button type="button" onclick="showLogLevel('error')">Error</button>
+                        <button type="button" onclick="showLogLevel('warning')">Warning</button>
+                        <button type="button" onclick="showLogLevel('info')">Info</button>
+                        -
+                        <button type="button" onclick="showLogLevel('interesting')">Interesting</button>
+                        <button type="button" onclick="showLogLevel('all')">All</button>
+                    </div>
                     <table class="joblog-display-table">
                         <thead>
                         <tr>
@@ -19,7 +46,7 @@
                         </thead>
                         <tbody>
                         {% for log in joblog_table.rows %}
-                            <tr class="form-row {% cycle "row1" "row2" %} level-{{ log.level }}">
+                            <tr class="form-row {% cycle "row1" "row2" %} log-row level-{{ log.level }}">
                                 {% if joblog_table.show_timestamp %}
                                 <td class="field-timestamp" style="width: 9em;">
                                     <p style="white-space: nowrap;">{{ log.timestamp }}</p>
