@@ -3,9 +3,9 @@ Change history
 ==============
 
 
-0.1.0
+1.0.0
 =====
 
-*<month, day year>*
+*March 25, 2021*
 
-* Initial release.
+We are pleased to announce our first release of the Catalogi Importer!

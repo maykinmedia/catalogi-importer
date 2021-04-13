@@ -2,7 +2,7 @@
 Catalogi Importer
 =================
 
-:Version: 0.1.0
+:Version: 1.0.0
 :Source: https://github.com/maykinmedia/catalogi-importer
 :Keywords: ztc, i-navigator, zaaktypen, catalogi-api
 
