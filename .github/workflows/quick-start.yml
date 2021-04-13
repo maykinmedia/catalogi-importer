@@ -5,7 +5,6 @@ on: [push]
 jobs:
   run:
     runs-on: ubuntu-latest
-    if: false  # disabled until repo is public
     steps:
       - name: Download docker-compose file
         run: wget https://raw.githubusercontent.com/maykinmedia/catalogi-importer/master/docker-compose-quickstart.yml -O docker-compose-qs.yml
