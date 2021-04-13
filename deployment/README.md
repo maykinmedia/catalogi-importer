@@ -1,1 +1,1 @@
-[Reference](doc/installation/deployment.rst)
+[Reference](../docs/installation/deployment.rst)
