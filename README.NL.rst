@@ -59,7 +59,6 @@ Referenties
 * `Documentatie <https://catalogi-importer.readthedocs.io/>`_
 * `Issues <https://github.com/maykinmedia/catalogi-importer/issues>`_
 * `Code <https://github.com/maykinmedia/catalogi-importer>`_
-* `Community <https://commonground.nl/groups/view/54478547/archiefbeheercomponent>`_
 * `Docker image <https://hub.docker.com/r/maykinmedia/catalogi-importer>`_
 
 .. _`English version`: README.rst
