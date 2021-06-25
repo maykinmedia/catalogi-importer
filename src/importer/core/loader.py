@@ -32,12 +32,22 @@ def retrieve_zaaktype(session, log_scope: str, identificatie: str):
             "status": "alles",
         },
     )
-    if result["count"] > 1:
-        raise LoaderException(f"{log_scope} found multiple conflicting resources")
-    elif result["count"] == 1:
-        return result["results"][0]
-    else:
+    return result["results"]
+
+
+def find_zaaktype_concept(zaaktype_data, remotes):
+    if not remotes:
         return None
+
+    for zt in remotes:
+        if zt["concept"] and zt["beginGeldigheid"] == zaaktype_data["beginGeldigheid"]:
+            return zt
+
+    for zt in remotes:
+        if zt["concept"]:
+            return zt
+
+    return None
 
 
 def update_zaaktype(session, zaaktype_data: dict):
@@ -49,28 +59,32 @@ def update_zaaktype(session, zaaktype_data: dict):
 
     zaaktype_data["catalogus"] = session.catalogus_url
 
-    remote = retrieve_zaaktype(session, log_scope, zaaktype_data["identificatie"])
-    if not remote:
+    remotes = retrieve_zaaktype(session, log_scope, zaaktype_data["identificatie"])
+    concept = find_zaaktype_concept(zaaktype_data, remotes)
+
+    if not remotes:
         # create new
         zaaktype = client.create("zaaktype", data=zaaktype_data)
         session.log_info(f"{log_scope} created new concept")
         session.counter.increment_created(ObjectTypenKeys.zaaktypen)
-    elif remote["concept"]:
+    elif concept:
         # update old resource which is still in concept
-        zaaktype = client.update("zaaktype", zaaktype_data, url=remote["url"])
+        zaaktype = client.update("zaaktype", zaaktype_data, url=concept["url"])
         session.log_info(f"{log_scope} updated existing concept")
         session.counter.increment_updated(ObjectTypenKeys.zaaktypen)
     else:
         # close old resource with start-date of the new resource
         if session.job.close_published:
-            client.partial_update(
-                "zaaktype",
-                {"eindeGeldigheid": zaaktype_data["beginGeldigheid"]},
-                url=remote["url"],
-            )
-            session.log_info(
-                f"{log_scope} closed existing published on '{zaaktype_data['beginGeldigheid']}'"
-            )
+            for remote in remotes:
+                if not remote["concept"] and not remote["eindeGeldigheid"]:
+                    client.partial_update(
+                        "zaaktype",
+                        {"eindeGeldigheid": zaaktype_data["beginGeldigheid"]},
+                        url=remote["url"],
+                    )
+                    session.log_info(
+                        f"{log_scope} closed existing published on '{zaaktype_data['beginGeldigheid']}'"
+                    )
         else:
             session.log_info(f"{log_scope} existing published stays active")
 
@@ -82,7 +96,7 @@ def update_zaaktype(session, zaaktype_data: dict):
     return zaaktype
 
 
-def find_concept(io_data, remote_map):
+def find_io_concept(io_data, remote_map):
     omschrijving = io_data["omschrijving"]
     if omschrijving not in remote_map:
         return None
@@ -130,7 +144,7 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
 
         omschrijving = iotype_data["omschrijving"]
         log_scope = f"informatieobjecttype '{omschrijving}'"
-        concept = find_concept(iotype_data, remote_map)
+        concept = find_io_concept(iotype_data, remote_map)
 
         try:
             if omschrijving not in remote_map:
