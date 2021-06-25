@@ -242,6 +242,22 @@ def construct_zaaktype_data(
 ) -> dict:
     fields = process.find("velden")
 
+    omschrijving = trim_string(
+        session,
+        log_scope,
+        find(fields, "kernomschrijving"),
+        80,
+        "omschrijving",
+        ObjectTypenKeys.zaaktypen,
+    )
+    omschrijvingGeneriek = trim_string(
+        session,
+        log_scope,
+        find(fields, "model-kernomschrijving", False),
+        80,
+        "omschrijvingGeneriek",
+        ObjectTypenKeys.zaaktypen,
+    )
     indicatie_intern_of_extern = (
         "extern"
         if "extern" in find(fields, "zaaktype-categorie", False).lower()
@@ -301,8 +317,8 @@ def construct_zaaktype_data(
 
     return {
         "identificatie": process.get("id"),
-        "omschrijving": find(fields, "kernomschrijving"),
-        "omschrijvingGeneriek": find(fields, "model-kernomschrijving", False),
+        "omschrijving": omschrijving,
+        "omschrijvingGeneriek": omschrijvingGeneriek,
         "vertrouwelijkheidaanduiding": get_choice_field(
             session,
             f"{log_scope} vertrouwelijkheidaanduiding",
@@ -411,8 +427,17 @@ def construct_resultaattype_data(
         ObjectTypenKeys.resultaattypen,
     )
 
+    omschrijving = trim_string(
+        session,
+        log_scope,
+        find(fields, "naam"),
+        20,
+        "naam",
+        ObjectTypenKeys.resultaattypen,
+    )
+
     resultaattype_data = {
-        "omschrijving": find(fields, "naam")[:20],
+        "omschrijving": omschrijving,
         "resultaattypeomschrijving": get_resultaattype_omschrijving(
             session, log_scope, resultaattype
         ),
