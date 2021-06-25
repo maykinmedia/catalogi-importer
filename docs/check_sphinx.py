@@ -1,8 +1,7 @@
 import subprocess
 
 
-# disabled until repo is public
-def __test_linkcheck(tmpdir):
+def test_linkcheck(tmpdir):
     doctrees = tmpdir.join("doctrees")
     htmldir = tmpdir.join("html")
     subprocess.check_call(
