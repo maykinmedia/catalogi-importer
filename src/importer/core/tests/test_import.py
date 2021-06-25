@@ -39,11 +39,15 @@ informatieobjecttype_response = {
     "url": "http://test/api/informatieobjecttypen/1",
     "omschrijving": "Onderzoeksstuk",
     "concept": False,
+    "beginGeldigheid": "2020-01-01",
+    "eindeGeldigheid": None,
 }
 informatieobjecttype_response_concept = {
     "url": "http://test/api/informatieobjecttypen/2",
     "omschrijving": "Onderzoeksstuk",
     "concept": True,
+    "beginGeldigheid": "2020-01-01",
+    "eindeGeldigheid": None,
 }
 informatieobjecttype_list_response = {
     "count": 1,
@@ -66,16 +70,22 @@ zaaktype_response = {
     "url": "http://test/api/zaaktypen/1",
     "identificatie": "foo",
     "concept": False,
+    "beginGeldigheid": "2020-01-01",
+    "eindeGeldigheid": None,
 }
 zaaktype_response2 = {
     "url": "http://test/api/zaaktypen/2",
     "identificatie": "foo",
     "concept": False,
+    "beginGeldigheid": "2020-01-01",
+    "eindeGeldigheid": None,
 }
 zaaktype_response_concept = {
     "url": "http://test/api/zaaktypen/2",
     "identificatie": "foo",
     "concept": True,
+    "beginGeldigheid": "2020-01-01",
+    "eindeGeldigheid": None,
 }
 zaaktype_list_response = {
     "count": 1,
