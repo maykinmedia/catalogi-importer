@@ -1,6 +1,5 @@
-import dataclasses
 import logging
-from datetime import date
+from collections import defaultdict
 from typing import Dict, List
 
 from requests import HTTPError
@@ -83,6 +82,22 @@ def update_zaaktype(session, zaaktype_data: dict):
     return zaaktype
 
 
+def find_concept(io_data, remote_map):
+    omschrijving = io_data["omschrijving"]
+    if omschrijving not in remote_map:
+        return None
+
+    for io in remote_map[omschrijving]:
+        if io["concept"] and io["beginGeldigheid"] == io_data["beginGeldigheid"]:
+            return io
+
+    for io in remote_map[omschrijving]:
+        if io["concept"]:
+            return io
+
+    return None
+
+
 def update_informatieobjecttypen(session, iotypen_data: List[dict]):
     """
     update/create list of informatieobjecttypen
@@ -99,7 +114,10 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
         "informatieobjecttype",
         query_params={"catalogus": session.catalogus_url, "status": "alles"},
     )
-    remote_map = {iotype["omschrijving"]: iotype for iotype in remote_list}
+
+    remote_map = defaultdict(list)
+    for io in remote_list:
+        remote_map[io["omschrijving"]].append(io)
 
     iotypen = []
 
@@ -110,31 +128,37 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
 
         iotype_data["catalogus"] = session.catalogus_url
 
-        log_scope = f"informatieobjecttype '{iotype_data['omschrijving']}'"
+        omschrijving = iotype_data["omschrijving"]
+        log_scope = f"informatieobjecttype '{omschrijving}'"
+        concept = find_concept(iotype_data, remote_map)
+
         try:
-            remote = remote_map.get(iotype_data["omschrijving"])
-            if not remote:
+            if omschrijving not in remote_map:
                 # new resource
                 iotype = client.create("informatieobjecttype", data=iotype_data)
                 session.log_info(f"{log_scope} created new concept")
                 session.counter.increment_created(ObjectTypenKeys.informatieobjecttypen)
-            elif remote["concept"]:
+
+            elif concept:
                 iotype = client.update(
-                    "informatieobjecttype", iotype_data, url=remote["url"]
+                    "informatieobjecttype", iotype_data, url=concept["url"]
                 )
                 session.log_info(f"{log_scope} updated existing concept")
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
+
             else:
                 # close old resource with start-date of the new resource
                 if session.job.close_published:
-                    client.partial_update(
-                        "informatieobjecttype",
-                        {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
-                        url=remote["url"],
-                    )
-                    session.log_info(
-                        f"{log_scope} closed existing published on '{iotype_data['beginGeldigheid']}'"
-                    )
+                    for remote in remote_map[omschrijving]:
+                        if not remote["concept"] and not remote["eindeGeldigheid"]:
+                            client.partial_update(
+                                "informatieobjecttype",
+                                {"eindeGeldigheid": iotype_data["beginGeldigheid"]},
+                                url=remote["url"],
+                            )
+                            session.log_info(
+                                f"{log_scope} closed existing published on '{iotype_data['beginGeldigheid']}'"
+                            )
                 else:
                     session.log_info(f"{log_scope} existing published stays active")
 
@@ -142,6 +166,7 @@ def update_informatieobjecttypen(session, iotypen_data: List[dict]):
                 iotype = client.create("informatieobjecttype", data=iotype_data)
                 session.log_info(f"{log_scope} created new concept")
                 session.counter.increment_updated(ObjectTypenKeys.informatieobjecttypen)
+
         except (ClientError, HTTPError) as exc:
             session.counter.increment_errored(ObjectTypenKeys.informatieobjecttypen)
             session.log_error(

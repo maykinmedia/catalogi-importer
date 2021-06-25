@@ -39,11 +39,15 @@ informatieobjecttype_response = {
     "url": "http://test/api/informatieobjecttypen/1",
     "omschrijving": "Onderzoeksstuk",
     "concept": False,
+    "beginGeldigheid": "2020-01-01",
+    "eindeGeldigheid": None,
 }
 informatieobjecttype_response_concept = {
     "url": "http://test/api/informatieobjecttypen/2",
     "omschrijving": "Onderzoeksstuk",
     "concept": True,
+    "beginGeldigheid": "2020-01-01",
+    "eindeGeldigheid": None,
 }
 informatieobjecttype_list_response = {
     "count": 1,
