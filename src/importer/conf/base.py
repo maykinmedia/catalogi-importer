@@ -391,3 +391,4 @@ ELASTIC_APM = {
 }
 
 SITE_ID = os.getenv("SITE_ID", 1)
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

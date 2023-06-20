@@ -2,7 +2,7 @@ from datetime import date
 from json import JSONDecodeError
 from urllib.parse import urljoin
 
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.core.exceptions import ValidationError
 from django.core.validators import (
     FileExtensionValidator,

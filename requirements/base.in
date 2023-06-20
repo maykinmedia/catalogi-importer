@@ -6,7 +6,7 @@ python-dotenv  # environment variables for secrets
 python-decouple  # processing of envvar configs
 
 # Framework libraries
-django < 3.0
+django==3.2
 django-admin-index
 django-axes
 django-choices
@@ -21,7 +21,7 @@ django-sendfile2
 # Core libraries
 lxml
 requests
-celery
+celery==5.3.1
 
 # API libraries
 # djangorestframework
@@ -31,7 +31,7 @@ celery
 # drf-yasg  # api documentation
 
 # WSGI servers & monitoring - production oriented
-uwsgi
+# uwsgi
 sentry-sdk  # error monitoring
 elastic-apm  # Elastic APM integration
 
