@@ -21,7 +21,7 @@ django-sendfile2
 # Core libraries
 lxml
 requests
-celery==5.3.1
+celery==5.3.0
 importlib-metadata==4.13.0
 
 # API libraries
