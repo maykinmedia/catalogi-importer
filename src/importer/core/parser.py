@@ -551,7 +551,6 @@ def construct_ziotype_data(session, log_scope, document: etree.ElementBase) -> d
 def parse_xml(
     session, tree: etree.ElementTree, processtype_year: int
 ) -> Tuple[list, list]:
-
     """
     <dsp
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
